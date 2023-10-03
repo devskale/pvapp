@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Solar Calculator</title>
+    <link rel="stylesheet" type="text/css" href="styles.css">
+</head>
+
+<body>
+    <h1>Solar Calculator</h1>
+    <form id="solarForm">
+        <label for="kW">kW (peak):</label>
+        <input type="number" id="kW">
+        <input type="submit" value="Calculate">
+    </form>
+    <div id="results"></div>
+    <canvas id="myChart" width="400" height="200"></canvas>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.3/Chart.min.js"></script>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
