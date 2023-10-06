@@ -3,10 +3,14 @@ import requests
 import zipfile
 import os
 import pandas as pd
+import inspect
 
 
 # ------------
 def init_environment():
+    #    print(
+    #        f"The current function name is {inspect.currentframe().f_code.co_name}")
+
     url = 'https://www.apcs.at/apcs/clearing/lastprofile/synthload2024.zip'
     local_file = './data/synthload2024.zip'
 
@@ -31,6 +35,9 @@ def init_environment():
 
 # ------------
 def init_dataframes(excel_file_path):
+    print(
+        f"The current function name is {inspect.currentframe().f_code.co_name}")
+
     # Load the first row to get column names
     column_names = pd.read_excel(
         excel_file_path, header=None, nrows=1).values[0]
@@ -52,10 +59,35 @@ def init_dataframes(excel_file_path):
     return df, dfz
 
 
-# ------------
-# Your main srcsink function
-def srcsink(df, day, src, src_kwh, sink, sink_kwh):
-    # Calculate energy for source and sink
-    # ...
-    # Return values
-    return total_used, total_not_used, perc_used, perc_powered
+def compute_total_annual_energy(df, kategorie):
+    energy_sum = df[kategorie].sum()
+
+    if 990 <= energy_sum <= 1010:
+        return round(energy_sum, 2)
+    else:
+        raise ValueError(
+            f"The annual energy for {kategorie} deviates by more than 1% from 1000 kWh. Computed sum: {energy_sum} kWh")
+
+
+def get_name_from_id(dfz, id_value):
+    filtered_df = dfz[dfz['Typname'] == id_value]
+
+    if len(filtered_df) == 0:
+        return None  # or some default value
+    else:
+        return filtered_df.iloc[0]['Typtext']
+
+
+def day_energy(df, date_str, kategorie, yearly_sum=1000):
+    scaling_factor = yearly_sum / 1000
+    specific_date = pd.to_datetime(date_str)
+    filtered_df = df[df['ts'].dt.date == specific_date.date()]
+
+    actual_kwh = filtered_df[kategorie].sum() * scaling_factor
+
+    total_annual_energy = compute_total_annual_energy(
+        df, kategorie) * scaling_factor
+    percentage_consumed = (
+        actual_kwh / total_annual_energy) * 100
+
+    return round(actual_kwh, 2), round(percentage_consumed, 2)
