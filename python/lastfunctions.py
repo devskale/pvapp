@@ -3,7 +3,7 @@ import requests
 import zipfile
 import os
 import pandas as pd
-import xlrd
+
 
 # ------------
 def init_environment():
@@ -30,9 +30,10 @@ def init_environment():
 
 
 # ------------
-def init_dataframes2(excel_file_path):
+def init_dataframes(excel_file_path):
     # Load the first row to get column names
-    column_names = pd.read_excel(excel_file_path, header=None, nrows=1).values[0]
+    column_names = pd.read_excel(
+        excel_file_path, header=None, nrows=1).values[0]
 
     # Load the data starting from row 3
     df = pd.read_excel(excel_file_path, skiprows=2, header=None)
@@ -48,47 +49,8 @@ def init_dataframes2(excel_file_path):
     df['Year'] = df['ts'].dt.year
     df['Month'] = df['ts'].dt.month
 
-    # Create a dictionary for 'zuordnung'
-    zuordnung = dfz[['Typnummer', 'Typname', 'Typtext']].to_dict(orient='records')
-
-    return df, dfz, zuordnung
-
-
-
-# ------------
-def init_dataframes(excel_file_path):
-    # Determine the number of rows in the Excel file using xlrd
-    xls = xlrd.open_workbook(excel_file_path)
-    num_rows = xls.sheet_by_index(0).nrows - 2  # 2 rows are skipped
-    xls.release_resources()  # Close the xlrd workbook
-
-    chunk_size = 5000  # Read 5000 rows at a time
-    print(f"Total samples: {num_rows}")
-
-    # Initialize empty lists to store chunks
-    df_list = []
-    progress = 0
-
-    # Open the Excel file with pandas and read the data in chunks
-    xls = pd.ExcelFile(excel_file_path)
-    for chunk in pd.read_excel(xls, sheet_name=0, skiprows=2, header=None, chunksize=chunk_size):
-        df_list.append(chunk)
-        progress += chunk_size
-        print(f"Ingested samples: {min(progress, num_rows)} of {num_rows}")
-
-    # Concatenate the chunks into a single DataFrame
-    df = pd.concat(df_list, ignore_index=True)
-    
-    # Read the second sheet into dfz
-    dfz = pd.read_excel(xls, sheet_name=1)
-    
-    # Close the pandas Excel file object
-    xls.close()
-
-    # Perform your normal column naming and type conversion here...
-    # ...
-
     return df, dfz
+
 
 # ------------
 # Your main srcsink function
