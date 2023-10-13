@@ -7,8 +7,11 @@ import inspect
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from pandas.tseries.offsets import YearEnd
+import warnings
 
-
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore")
+    plt.show(block=False)
 # ------------
 
 

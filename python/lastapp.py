@@ -16,7 +16,7 @@ if __name__ == "__main__":
                         help="Path to the Excel file containing data.")
     parser.add_argument('-test', action='store_true',
                         help="Test function to execute.")
-    parser.add_argument('-f', '--function', type=str, required=True,
+    parser.add_argument('-f', '--function', type=str, required=False, default='de',
                         choices=['de', 'pd', 'pm', 'pym', 'pyd'],
                         help='Function to execute. Options: de (day_energy), pd (plot_day), pm (plot_month), pym (plot_yearmonths), pyd (plot_yeardays)')
 
@@ -26,7 +26,7 @@ if __name__ == "__main__":
                         help='Month in YYYY-MM format. Required for: pm.')
     parser.add_argument('-y', '--year', type=str,
                         help='Year in YYYY format. Required for: pyd.')
-    parser.add_argument('-k', '--kategorie', type=str, required=True,
+    parser.add_argument('-k', '--kategorie', type=str, required=False, default='H0',
                         help='Category. Required for all functions.')
     parser.add_argument('-ys', '--yearly_sum', type=int, default=1000,
                         help='Yearly sum. Optional for all functions.')
@@ -42,6 +42,7 @@ if __name__ == "__main__":
 
     if args.init:
         init_environment()
+        exit(0)
 
     if args.data_file:
         df, dfz = init_dataframes(args.data_file)
