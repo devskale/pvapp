@@ -2,7 +2,7 @@ name: pvapp_environment
 channels:
   - defaults
 dependencies:
-  - python=3.11.5
+  - python=3.12.2
   - pandas
 env_vars:
   LC_ALL: de_DE.UTF-8
