@@ -2,10 +2,13 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 import os
-import lastfunctions as lf  # Assuming your functions are in a file named lastfunctions.py
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
+import lastf_str as lf  # Assuming your functions are in a file named lastfunctions.py
 import altair as alt
+
+
+strompreis = 0.4222
+SpezifischerErtrag = 1000
+
 
 # Initialization
 def setup_data():
@@ -69,7 +72,7 @@ def plot_yearmonths(df, dfz, kategorie, year=2024, yearly_sum=1000):
 
     # Combine bar and rule charts
     chart = alt.layer(bars, line).properties(
-        title=f"Monthly Energy Distribution for {year}, Total: {yearly_sum} kWh",
+        title=f"Energy Distribution for {year}, Year Total: {yearly_sum} kWh, {strompreis * yearly_sum:.2f} €",
         width=800,
         height=400
     )
@@ -130,9 +133,8 @@ def app():
 
     Anlage = st.sidebar.selectbox('Select Solar Installation Capacity (kWp)', AnalgenOptions)
     
-    SpezifischerErtrag = 1000
     yearly_sum = Anlage * SpezifischerErtrag
-    st.sidebar.write(f"Yearly Sum (kWh): {yearly_sum}")
+    st.sidebar.write(f"Yearly Sum (kWh): {yearly_sum}\n{strompreis} €/kWh, \n{SpezifischerErtrag:.0f} kWh/kWp")
     #yearly_sum = st.sidebar.number_input('Set Yearly Sum (kWh)', value=500)
 
     # Display app title
@@ -142,7 +144,7 @@ def app():
     today_str = datetime.now().strftime('%Y-%m-%d')
     today_energy, today_percentage = lf.day_energy(df, today_str, kategorie, yearly_sum)
     st.header(f"Energy Consumption for Today: {today_str}")
-    st.subheader(f"Total kWh: {today_energy} kWh")
+    st.subheader(f"Todays kWh: {today_energy} kWh, {strompreis * today_energy:.2f} €")
     st.write(f"Percentage of Yearly Consumption: {today_percentage:.2f}%")
     
     # Plot the day's energy distribution
@@ -153,9 +155,10 @@ def app():
 
     current_month_str = datetime.now().strftime('%Y-%m')
     month_energy, month_percentage = lf.plot_month(df, dfz, current_month_str, kategorie, yearly_sum)
-    st.header(f"Energy Consumption for Current Month: {current_month_str}")
-    st.subheader(f"Total kWh: {month_energy} kWh")
+    st.header(f"Energy Consumption for Month: {current_month_str}")
+    st.subheader(f"Month Total kWh: {month_energy} kWh, {strompreis * month_energy:.2f} €")
     st.write(f"Percentage of Yearly Consumption: {month_percentage:.2f}%")
+
 
 if __name__ == '__main__':
     app()
