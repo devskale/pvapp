@@ -4,7 +4,6 @@ channels:
 dependencies:
   - python==3.12
   - altair
-  - streamlit
   - pandas
   - requests
 env_vars:
