@@ -244,6 +244,7 @@ def plot_yeardays(df, dfz, kategorie, year_str, yearly_sum=1000):
     kwh_series = []
     percentage_series = []
     category_name = get_name_from_id(dfz, kategorie)
+    # Round up to next multiple of 5
 
     # Loop through each day in the year
     for day in days_in_year:
@@ -265,6 +266,12 @@ def plot_yeardays(df, dfz, kategorie, year_str, yearly_sum=1000):
     ax1.set_xlabel('Day of Year')
     ax1.set_ylabel('Energy (kWh)')
     ax2.set_ylabel('Percentage (%)')
+    max_kwh = max(kwh_series)
+    max_percent = max(percentage_series)
+    upper_kwh = ((max_kwh // 5) + 1) * 5
+    upper_percent = ((max_percent // 1) + 1) * 1
+    ax1.set_ylim(bottom=0, top=upper_kwh)
+    ax2.set_ylim(bottom=0, top=upper_percent)
 
     fig.tight_layout()
     fig.legend(loc="upper left", bbox_to_anchor=(0.1, 0.9))
