@@ -87,8 +87,6 @@ class EnergyProfileAnalyzer:
             if self.args.date:
                 lf.plot_day(self.df, self.dfz, self.args.date,
                             self.args.kategorie, self.args.yearly_sum)
-                # Wait for the user to hit space
-                input("Hit return to continue...")
             else:
                 print("Date is required for plot_day.")
 
@@ -96,7 +94,6 @@ class EnergyProfileAnalyzer:
             if self.args.month:
                 lf.plot_month(self.df, self.dfz, self.args.month,
                               self.args.kategorie, self.args.yearly_sum)
-                input("Hit return to continue...")
             else:
                 print("Month is required for plot_month.")
 
@@ -104,7 +101,6 @@ class EnergyProfileAnalyzer:
             if self.args.year_range:
                 lf.plot_yearmonths(self.df, self.dfz, self.args.kategorie,
                                    self.args.year_range, self.args.yearly_sum)
-                input("Hit return to continue...")
             else:
                 print("Year range is required for plot_yearmonths.")
 
@@ -112,7 +108,6 @@ class EnergyProfileAnalyzer:
             if self.args.year:
                 lf.plot_yeardays(self.df, self.dfz, self.args.kategorie,
                                  self.args.year, self.args.yearly_sum)
-                input("Hit return to continue...")
             else:
                 print("Year is required for plot_yeardays.")
 
@@ -130,7 +125,7 @@ class EnergyProfileAnalyzer:
                                           kategorie=kat, year_str=2024, yearly_sum=jen)
             print('Jahres Energie', yeardaysum, 'kWh')
 
-            input("Hit space to continue...")  # Wait for the user to hit space
+            pass
 
 
 if __name__ == "__main__":

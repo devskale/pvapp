@@ -184,8 +184,7 @@ def plot_day(df, dfz, date_str, kategorie, yearly_sum=1000):
     plt.legend()
     plt.grid(True)
     plt.tight_layout()
-    plt.show(block=False)
-
+    plt.show(block=True)
     return round(actual_kwh_series.sum(), 2), round(percentage_series.sum(), 2)
 
 
@@ -241,7 +240,7 @@ def plot_month(df, dfz, month_str, kategorie, yearly_sum=1000):
 
         fig.tight_layout()
         fig.legend(loc="upper left", bbox_to_anchor=(0.1, 0.9))
-        plt.show(block=False)
+        plt.show(block=True)
 
         return round(sum(kwh_series), 2), round(sum(percentage_series), 2)
 
@@ -280,7 +279,7 @@ def plot_yearmonths(df, dfz, kategorie, year=2024, yearly_sum=1000):
     plt.ylabel("Energy (kWh)")
     plt.grid(axis='y', linestyle='--', alpha=0.7)
     plt.tight_layout()
-    plt.show(block=False)
+    plt.show(block=True)
 
     # Sum of all monthly kWh values and compare to yearly_sum
     summed_energy = monthly_energy.sum()
