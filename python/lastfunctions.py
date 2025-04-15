@@ -1,3 +1,9 @@
+"""
+Energy Profile Analysis Module
+
+This module provides functions to download, process, and visualize energy consumption data
+from APCS (Austrian Power Clearing and Settlement).
+"""
 import requests
 import zipfile
 import os
@@ -7,65 +13,93 @@ import matplotlib.dates as mdates
 from pandas.tseries.offsets import YearEnd
 import warnings
 
+# Global configuration
+DATA_URL = 'https://www.apcs.at/apcs/clearing/lastprofile/synthload2024.zip'
+DATA_DIR = './data'
+ZIP_FILE = f'{DATA_DIR}/synthload2024.zip'
+
+# Suppress matplotlib warnings
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
     plt.show(block=False)
-# ------------
 
 
 def init_environment():
-    #    print(
-    #        f"The current function name is {inspect.currentframe().f_code.co_name}")
+    """
+    Initialize the data environment by downloading and extracting the energy profile data.
 
-    url = 'https://www.apcs.at/apcs/clearing/lastprofile/synthload2024.zip'
-    local_file = './data/synthload2024.zip'
-
-    # Create 'data' folder if it doesn't exist
-    if not os.path.exists('./data'):
-        os.makedirs('./data')
+    Downloads the zip file from APCS, extracts it to the data directory,
+    and cleans up the zip file afterward.
+    """
+    # Create data directory if it doesn't exist
+    if not os.path.exists(DATA_DIR):
+        os.makedirs(DATA_DIR)
 
     # Download the file
-    response = requests.get(url)
-    with open(local_file, 'wb') as f:
+    response = requests.get(DATA_URL)
+    with open(ZIP_FILE, 'wb') as f:
         f.write(response.content)
 
     # Unzip the file
-    with zipfile.ZipFile(local_file, 'r') as zip_ref:
-        zip_ref.extractall('./data')
+    with zipfile.ZipFile(ZIP_FILE, 'r') as zip_ref:
+        zip_ref.extractall(DATA_DIR)
 
-    # Delete the zip file
-    os.remove(local_file)
-
+    # Clean up
+    os.remove(ZIP_FILE)
     print("Initialization complete.")
 
 
 # ------------
 def init_dataframes(excel_file_path):
-    #    print(
-    #        f"The current function name is {inspect.currentframe().f_code.co_name}")
+    """
+    Initialize and process the energy profile data from Excel files.
 
-    # Load the first row to get column names
-    column_names = pd.read_excel(
-        excel_file_path, header=None, nrows=1).values[0]
+    Args:
+        excel_file_path (str): Path to the Excel file containing energy data
 
-    # Load the data starting from row 3
-    df = pd.read_excel(excel_file_path, skiprows=2, header=None)
-    dfz = pd.read_excel(excel_file_path, sheet_name=1)
+    Returns:
+        tuple: (df, dfz) where df is the main data DataFrame and dfz contains category metadata
+    """
+    try:
+        # Load column names from first row
+        column_names = pd.read_excel(
+            excel_file_path, header=None, nrows=1).values[0]
 
-    # Rename columns. The first column is renamed to 'ts', and the others are renamed using values from the first row.
-    df.columns = ['ts'] + list(column_names[1:])
+        # Load main data starting from row 3
+        df = pd.read_excel(excel_file_path, skiprows=2, header=None)
+        dfz = pd.read_excel(excel_file_path, sheet_name=1)
 
-    # Convert the 'ts' column to datetime
-    df['ts'] = pd.to_datetime(df['ts'])
+        # Rename columns
+        df.columns = ['ts'] + list(column_names[1:])
 
-    # Extract the 'Year' and 'Month' from the 'ts' column
-    df['Year'] = df['ts'].dt.year
-    df['Month'] = df['ts'].dt.month
+        # Convert and extract datetime features
+        df['ts'] = pd.to_datetime(df['ts'])
+        df['Year'] = df['ts'].dt.year
+        df['Month'] = df['ts'].dt.month
 
-    return df, dfz
+        return df, dfz
+
+    except Exception as e:
+        raise ValueError(f"Failed to initialize dataframes: {str(e)}")
 
 
 def compute_total_annual_energy(df, kategorie):
+    """
+    Compute and validate the total annual energy for a given category.
+
+    Args:
+        df (DataFrame): The energy data
+        kategorie (str): The category column to analyze
+
+    Returns:
+        float: The rounded annual energy sum
+
+    Raises:
+        ValueError: If energy sum deviates by more than 1% from 1000 kWh
+    """
+    if kategorie not in df.columns:
+        raise ValueError(f"Category '{kategorie}' not found in data")
+
     energy_sum = df[kategorie].sum()
 
     if 990 <= energy_sum <= 1010:
@@ -115,24 +149,35 @@ def day_vector(df, date_str, kategorie, yearly_sum=1000):
 
 
 def plot_day(df, dfz, date_str, kategorie, yearly_sum=1000):
+    """
+    Plot daily energy distribution for a specific date and category.
+
+    Args:
+        df (DataFrame): Main energy data
+        dfz (DataFrame): Category metadata
+        date_str (str): Date to plot (YYYY-MM-DD format)
+        kategorie (str): Energy category to plot
+        yearly_sum (float): Annual energy sum for scaling (default: 1000)
+
+    Returns:
+        tuple: (total_energy, total_percentage) for the day
+    """
     actual_kwh_series, percentage_series, filtered_df = day_vector(
         df, date_str, kategorie, yearly_sum)
 
-    # Get the Typtext for the kategorie
+    # Get category name
     typtext = get_name_from_id(dfz, kategorie)
+    if not typtext:
+        raise ValueError(f"Category '{kategorie}' not found in metadata")
 
     # Visualization
     plt.figure(figsize=(5, 3))
-
     plt.plot(filtered_df['ts'], actual_kwh_series * 4, label=f"Actual kWh")
-
-    # This adjustment is necessary to correctly represent the energy values
-    # in kilowatt-hours (kWh) per 15-minute interval.
     plt.title(f"Energy Distribution for {date_str} ({typtext})")
     plt.xlabel("Time")
     plt.ylabel("Energy (kWh)")
 
-    # Format x-ticks to show only the hours
+    # Format x-axis
     plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
     plt.xticks(rotation=45)
 
@@ -141,53 +186,67 @@ def plot_day(df, dfz, date_str, kategorie, yearly_sum=1000):
     plt.tight_layout()
     plt.show(block=False)
 
-    total_energy = round(actual_kwh_series.sum(), 2)
-    total_percentage = round(percentage_series.sum(), 2)
-
-    return total_energy, total_percentage
+    return round(actual_kwh_series.sum(), 2), round(percentage_series.sum(), 2)
 
 
 def plot_month(df, dfz, month_str, kategorie, yearly_sum=1000):
-    # Prepare to collect data
-    days_in_month = pd.date_range(
-        month_str, periods=pd.Period(month_str).days_in_month, freq='D')
-    kwh_series = []
-    percentage_series = []
-    category_name = get_name_from_id(dfz, kategorie)
+    """
+    Plot monthly energy distribution for a specific month and category.
 
-    # Loop through each day in the month
-    for day in days_in_month:
-        date_str = day.strftime('%Y-%m-%d')
-        daily_kwh, daily_percentage = day_energy(
-            df, date_str, kategorie, yearly_sum)
-        kwh_series.append(daily_kwh)
-        percentage_series.append(daily_percentage)
+    Args:
+        df (DataFrame): Main energy data
+        dfz (DataFrame): Category metadata
+        month_str (str): Month to plot (YYYY-MM format)
+        kategorie (str): Energy category to plot
+        yearly_sum (float): Annual energy sum for scaling (default: 1000)
 
-    # Data for plotting
-    fig, ax1 = plt.subplots()
+    Returns:
+        tuple: (total_energy, total_percentage) for the month
+    """
+    try:
+        period = pd.Period(month_str)
+        days_in_month = pd.date_range(
+            month_str, periods=period.days_in_month, freq='D')
 
-    ax2 = ax1.twinx()
-    ax1.set_title(
-        f"{pd.Period(month_str).strftime('%B %Y')} - {category_name}")
-    ax1.bar(days_in_month, kwh_series, alpha=0.6, label='Daily kWh')
-    ax2.plot(days_in_month, percentage_series,
-             color='r', label='Percentage (%)')
+        category_name = get_name_from_id(dfz, kategorie)
+        if not category_name:
+            raise ValueError(f"Category '{kategorie}' not found in metadata")
 
-    ax1.set_xlabel('Day')
-    ax1.set_ylabel('Energy (kWh)')
-    ax2.set_ylabel('Percentage (%)')
+        # Collect daily data
+        kwh_series = []
+        percentage_series = []
+        for day in days_in_month:
+            daily_kwh, daily_percentage = day_energy(
+                df, day.strftime('%Y-%m-%d'), kategorie, yearly_sum)
+            kwh_series.append(daily_kwh)
+            percentage_series.append(daily_percentage)
 
-    # Only display the day on the x-axis
-# Display month and day on the x-axis
-    ax1.set_xticks(days_in_month)  # set ticks at the specific days
-    ax1.set_xticklabels(
-        [day.strftime('%d') for day in days_in_month], rotation=75)
+        # Create plot
+        fig, ax1 = plt.subplots()
+        ax2 = ax1.twinx()
 
-    fig.tight_layout()
-    fig.legend(loc="upper left", bbox_to_anchor=(0.1, 0.9))
-    plt.show(block=False)
+        ax1.set_title(f"{period.strftime('%B %Y')} - {category_name}")
+        ax1.bar(days_in_month, kwh_series, alpha=0.6, label='Daily kWh')
+        ax2.plot(days_in_month, percentage_series,
+                 color='r', label='Percentage (%)')
 
-    return round(sum(kwh_series), 2), round(sum(percentage_series), 2)
+        ax1.set_xlabel('Day')
+        ax1.set_ylabel('Energy (kWh)')
+        ax2.set_ylabel('Percentage (%)')
+
+        # Format x-axis
+        ax1.set_xticks(days_in_month)
+        ax1.set_xticklabels([day.strftime('%d')
+                            for day in days_in_month], rotation=75)
+
+        fig.tight_layout()
+        fig.legend(loc="upper left", bbox_to_anchor=(0.1, 0.9))
+        plt.show(block=False)
+
+        return round(sum(kwh_series), 2), round(sum(percentage_series), 2)
+
+    except Exception as e:
+        raise ValueError(f"Failed to plot month {month_str}: {str(e)}")
 
 # Replace with your actual DataFrame and parameters
 # df = your_actual_dataframe
