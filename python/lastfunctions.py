@@ -398,6 +398,13 @@ def plot_yeardays(df, dfz, kategorie, year_str, yearly_sum=1000, output='text'):
     if output == 'text':
         print(
             f"Yearly energy distribution for {year_str} ({category_name}), Total: {total_yearly_kwh} kWh")
+        print("\nDaily Energy Values:")
+        print("Date       kWh     Percentage")
+        print("----       ---     ----------")
+        for i, day in enumerate(days_in_year):
+            day_str = day.strftime('%Y-%m-%d')
+            print(
+                f"{day_str}    {kwh_series[i]:.2f}    {percentage_series[i]:.2f}%")
         return total_yearly_kwh
     elif output == 'plot':
         # Data for plotting
@@ -422,7 +429,7 @@ def plot_yeardays(df, dfz, kategorie, year_str, yearly_sum=1000, output='text'):
         fig.tight_layout()
         fig.legend(loc="upper left", bbox_to_anchor=(0.1, 0.9))
 
-        plt.show(block=False)
+        plt.show(block=True)
         return total_yearly_kwh
 
 # You can call this function like so:
