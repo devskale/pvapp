@@ -94,26 +94,36 @@ document.addEventListener("DOMContentLoaded", () => {
           });
       });
 
-      // Create chart if we have monthly or daily data
+      // Create chart if we have monthly, daily or hourly data
       if (
         (selectedFunction === "pym" && data.monthly_values) ||
-        (selectedFunction === "pm" && data.daily_values)
+        (selectedFunction === "pm" && data.daily_values) ||
+        (selectedFunction === "pd" && data.hourly_values)
       ) {
         const ctx = document.createElement("canvas");
         chartArea.appendChild(ctx);
 
         const isMonthly = selectedFunction === "pym";
-        const labels = isMonthly
-          ? data.monthly_values.map((m) => m.month_name)
-          : data.daily_values.map((d) => d.date.split("-")[2]); // Just show day number
-        const values = isMonthly
-          ? data.monthly_values.map((m) => m.kwh)
-          : data.daily_values.map((d) => d.kwh);
-        const percentages = isMonthly
-          ? data.monthly_values.map((m) => m.percent_of_year)
-          : data.daily_values.map(
-              (d) => d.percentage_of_month || d.percentage_of_year
-            );
+        const isDaily = selectedFunction === "pm";
+        const isHourly = selectedFunction === "pd";
+
+        let labels, values, percentages;
+
+        if (isMonthly) {
+          labels = data.monthly_values.map((m) => m.month_name);
+          values = data.monthly_values.map((m) => m.kwh);
+          percentages = data.monthly_values.map((m) => m.percent_of_year);
+        } else if (isDaily) {
+          labels = data.daily_values.map((d) => d.date.split("-")[2]); // Just show day number
+          values = data.daily_values.map((d) => d.kwh);
+          percentages = data.daily_values.map(
+            (d) => d.percentage_of_month || d.percentage_of_year
+          );
+        } else if (isHourly) {
+          labels = data.hourly_values.map((h) => h.hour); // Hour of day
+          values = data.hourly_values.map((h) => h.kwh);
+          percentages = data.hourly_values.map((h) => h.percentage_of_day);
+        }
 
         // Extract short and long form name from selected category
         const selectedOption =
@@ -124,12 +134,19 @@ document.addEventListener("DOMContentLoaded", () => {
           data.category_name ||
           "";
 
-        // Format date to yyyy-mm format
-        const dateComponents = date.split("-");
-        const formattedDate =
-          dateComponents.length >= 2
-            ? `${dateComponents[0]}-${dateComponents[1]}`
-            : dateComponents[0];
+        // Format date based on the function
+        let formattedDate;
+        if (isMonthly) {
+          formattedDate = dateInput.value.split("-")[0]; // Year only
+        } else if (isDaily) {
+          const dateComponents = date.split("-");
+          formattedDate =
+            dateComponents.length >= 2
+              ? `${dateComponents[0]}-${dateComponents[1]}`
+              : dateComponents[0];
+        } else if (isHourly) {
+          formattedDate = date; // Full date for hourly view
+        }
 
         new Chart(ctx, {
           type: "bar",
@@ -164,15 +181,26 @@ document.addEventListener("DOMContentLoaded", () => {
                 callbacks: {
                   label: (context) => {
                     const index = context.dataIndex;
-                    const value = isMonthly
-                      ? data.monthly_values[index]
-                      : data.daily_values[index];
-                    const percentField = isMonthly
-                      ? "percent_of_year"
-                      : value.percentage_of_month || value.percentage_of_year;
-                    return `${value.kwh} kWh (${percentField}% of ${
-                      isMonthly ? "year" : "month"
-                    })`;
+                    let value, percentField, periodName;
+
+                    if (isMonthly) {
+                      value = data.monthly_values[index];
+                      percentField = value.percent_of_year;
+                      periodName = "year";
+                    } else if (isDaily) {
+                      value = data.daily_values[index];
+                      percentField =
+                        value.percentage_of_month || value.percentage_of_year;
+                      periodName = "month";
+                    } else if (isHourly) {
+                      value = data.hourly_values[index];
+                      percentField = value.percentage_of_day;
+                      periodName = "day";
+                    }
+
+                    return `${value.kwh.toFixed(
+                      2
+                    )} kWh (${percentField}% of ${periodName})`;
                   },
                 },
               },
@@ -184,9 +212,19 @@ document.addEventListener("DOMContentLoaded", () => {
                     size: 12,
                   },
                   generateLabels: (chart) => {
-                    const values = isMonthly
-                      ? data.monthly_values
-                      : data.daily_values;
+                    let values, dateInfo;
+
+                    if (isMonthly) {
+                      values = data.monthly_values;
+                      dateInfo = dateInput.value.split("-")[0];
+                    } else if (isDaily) {
+                      values = data.daily_values;
+                      dateInfo = date;
+                    } else if (isHourly) {
+                      values = data.hourly_values;
+                      dateInfo = date;
+                    }
+
                     const maxValue = values.reduce(
                       (max, v) => (v.kwh > max.kwh ? v : max),
                       values[0]
@@ -196,13 +234,26 @@ document.addEventListener("DOMContentLoaded", () => {
                       values[0]
                     );
                     const totalKwh = values.reduce((sum, v) => sum + v.kwh, 0);
-                    const dateInfo = isMonthly
-                      ? dateInput.value.split("-")[0]
-                      : date;
+
+                    let periodName, maxLabel, minLabel;
+
+                    if (isMonthly) {
+                      periodName = "Year";
+                      maxLabel = maxValue.month_name;
+                      minLabel = minValue.month_name;
+                    } else if (isDaily) {
+                      periodName = "Month";
+                      maxLabel = maxValue.date.split("-")[2];
+                      minLabel = minValue.date.split("-")[2];
+                    } else if (isHourly) {
+                      periodName = "Day";
+                      maxLabel = `${maxValue.hour}:00`;
+                      minLabel = `${minValue.hour}:00`;
+                    }
 
                     return [
                       {
-                        text: `${isMonthly ? "Year" : "Month"}: ${dateInfo}`,
+                        text: `${periodName}: ${dateInfo}`,
                         fillStyle: "transparent",
                         hidden: false,
                       },
@@ -212,20 +263,16 @@ document.addEventListener("DOMContentLoaded", () => {
                         hidden: false,
                       },
                       {
-                        text: `Max: ${
-                          isMonthly
-                            ? maxValue.month_name
-                            : maxValue.date.split("-")[2]
-                        } (${maxValue.kwh.toFixed(1)} kWh, 100%)`,
+                        text: `Max: ${maxLabel} (${maxValue.kwh.toFixed(
+                          1
+                        )} kWh, 100%)`,
                         fillStyle: "rgba(54, 162, 235, 0.5)",
                         hidden: false,
                       },
                       {
-                        text: `Min: ${
-                          isMonthly
-                            ? minValue.month_name
-                            : minValue.date.split("-")[2]
-                        } (${minValue.kwh.toFixed(1)} kWh, ${Math.round(
+                        text: `Min: ${minLabel} (${minValue.kwh.toFixed(
+                          1
+                        )} kWh, ${Math.round(
                           (minValue.kwh / maxValue.kwh) * 100
                         )}%)`,
                         fillStyle: "rgba(54, 162, 235, 0.2)",
