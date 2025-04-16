@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Energy Profile Viewer</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <h1>Energy Profile Viewer</h1>
+
+    <div class="controls">
+      <label for="function-select">Function:</label>
+      <select id="function-select">
+        <option value="pd">Plot Day (pd)</option>
+        <option value="pm">Plot Month (pm)</option>
+        <option value="pym">Plot Year Months (pym)</option>
+        <option value="pyd">Plot Year Days (pyd)</option>
+      </select>
+
+      <label for="date-input">Date:</label>
+      <input
+        type="text"
+        id="date-input"
+        placeholder="YYYY-MM-DD / YYYY-MM / YYYY" />
+
+      <label for="kategorie-select">Category:</label>
+      <select id="kategorie-select">
+        <!-- Options will be loaded dynamically -->
+        <option value="H0">Loading categories...</option>
+      </select>
+
+      <label for="yearly-sum-input">Yearly Sum (kWh):</label>
+      <input type="number" id="yearly-sum-input" value="1000" />
+
+      <button id="fetch-button">Fetch Data</button>
+    </div>
+
+    <div id="output-area">
+      <h2>Results</h2>
+      <pre id="results"></pre>
+      <div id="chart-area"></div>
+      <!-- Area for potential charts -->
+    </div>
+
+    <script src="/static/script.js"></script>
+  </body>
+</html>
