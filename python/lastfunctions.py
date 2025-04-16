@@ -148,7 +148,7 @@ def day_vector(df, date_str, kategorie, yearly_sum=1000):
     return actual_kwh_series, percentage_series, filtered_df
 
 
-def plot_day(df, dfz, date_str, kategorie, yearly_sum=1000):
+def plot_day(df, dfz, date_str, kategorie, yearly_sum=1000, output='text'):
     """
     Plot daily energy distribution for a specific date and category.
 
@@ -158,6 +158,7 @@ def plot_day(df, dfz, date_str, kategorie, yearly_sum=1000):
         date_str (str): Date to plot (YYYY-MM-DD format)
         kategorie (str): Energy category to plot
         yearly_sum (float): Annual energy sum for scaling (default: 1000)
+        output (str): Output format ('text' or 'plot')
 
     Returns:
         tuple: (total_energy, total_percentage) for the day
@@ -170,25 +171,33 @@ def plot_day(df, dfz, date_str, kategorie, yearly_sum=1000):
     if not typtext:
         raise ValueError(f"Category '{kategorie}' not found in metadata")
 
-    # Visualization
-    plt.figure(figsize=(5, 3))
-    plt.plot(filtered_df['ts'], actual_kwh_series * 4, label=f"Actual kWh")
-    plt.title(f"Energy Distribution for {date_str} ({typtext})")
-    plt.xlabel("Time")
-    plt.ylabel("Energy (kWh)")
+    total_energy = round(actual_kwh_series.sum(), 2)
+    total_percentage = round(percentage_series.sum(), 2)
 
-    # Format x-axis
-    plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
-    plt.xticks(rotation=45)
+    if output == 'text':
+        print(f"Daily energy consumption for {date_str}: {total_energy} kWh.")
+        print(f"Percentage of yearly consumption: {total_percentage} %.")
+    elif output == 'plot':
+        # Visualization
+        plt.figure(figsize=(5, 3))
+        plt.plot(filtered_df['ts'], actual_kwh_series * 4, label=f"Actual kWh")
+        plt.title(f"Energy Distribution for {date_str} ({typtext})")
+        plt.xlabel("Time")
+        plt.ylabel("Energy (kWh)")
 
-    plt.legend()
-    plt.grid(True)
-    plt.tight_layout()
-    plt.show(block=True)
-    return round(actual_kwh_series.sum(), 2), round(percentage_series.sum(), 2)
+        # Format x-axis
+        plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+        plt.xticks(rotation=45)
+
+        plt.legend()
+        plt.grid(True)
+        plt.tight_layout()
+        plt.show(block=True)
+
+    return total_energy, total_percentage
 
 
-def plot_month(df, dfz, month_str, kategorie, yearly_sum=1000):
+def plot_month(df, dfz, month_str, kategorie, yearly_sum=1000, output='text'):
     """
     Plot monthly energy distribution for a specific month and category.
 
@@ -198,6 +207,7 @@ def plot_month(df, dfz, month_str, kategorie, yearly_sum=1000):
         month_str (str): Month to plot (YYYY-MM format)
         kategorie (str): Energy category to plot
         yearly_sum (float): Annual energy sum for scaling (default: 1000)
+        output (str): Output format ('text' or 'plot')
 
     Returns:
         tuple: (total_energy, total_percentage) for the month
@@ -220,29 +230,46 @@ def plot_month(df, dfz, month_str, kategorie, yearly_sum=1000):
             kwh_series.append(daily_kwh)
             percentage_series.append(daily_percentage)
 
-        # Create plot
-        fig, ax1 = plt.subplots()
-        ax2 = ax1.twinx()
+        total_energy = round(sum(kwh_series), 2)
+        total_percentage = round(sum(percentage_series), 2)
 
-        ax1.set_title(f"{period.strftime('%B %Y')} - {category_name}")
-        ax1.bar(days_in_month, kwh_series, alpha=0.6, label='Daily kWh')
-        ax2.plot(days_in_month, percentage_series,
-                 color='r', label='Percentage (%)')
+        if output == 'text':
+            print(
+                f"Monthly energy consumption for {month_str}: {total_energy} kWh.")
+            print(f"Percentage of yearly consumption: {total_percentage} %.")
+            print(
+                f"\nDaily values for {period.strftime('%B %Y')} - {category_name}:")
+            print("Date       kWh     Percentage")
+            print("----       ---     ----------")
+            for i, day in enumerate(days_in_month):
+                day_str = day.strftime('%d')
+                print(
+                    f"{day_str:2}         {kwh_series[i]:.2f}    {percentage_series[i]:.2f}%")
+        elif output == 'plot':
+            # Create plot
+            fig, ax1 = plt.subplots()
+            ax2 = ax1.twinx()
 
-        ax1.set_xlabel('Day')
-        ax1.set_ylabel('Energy (kWh)')
-        ax2.set_ylabel('Percentage (%)')
+            ax1.set_title(f"{period.strftime('%B %Y')} - {category_name}")
+            ax1.bar(days_in_month, kwh_series, alpha=0.6, label='Daily kWh')
+            ax2.plot(days_in_month, percentage_series,
+                     color='r', label='Percentage (%)')
 
-        # Format x-axis
-        ax1.set_xticks(days_in_month)
-        ax1.set_xticklabels([day.strftime('%d')
-                            for day in days_in_month], rotation=75)
+            ax1.set_xlabel('Day')
+            ax1.set_ylabel('Energy (kWh)')
+            ax2.set_ylabel('Percentage (%)')
 
-        fig.tight_layout()
-        fig.legend(loc="upper left", bbox_to_anchor=(0.1, 0.9))
-        plt.show(block=True)
+            # Format x-axis
+            ax1.set_xticks(days_in_month)
+            ax1.set_xticklabels([day.strftime('%d')
+                                for day in days_in_month], rotation=75)
 
-        return round(sum(kwh_series), 2), round(sum(percentage_series), 2)
+            fig.tight_layout()
+            fig.legend(loc="upper left", bbox_to_anchor=(0.1, 0.9))
+            # Use block=True to keep plot window open until closed
+            plt.show(block=True)
+
+        return total_energy, total_percentage
 
     except Exception as e:
         raise ValueError(f"Failed to plot month {month_str}: {str(e)}")
@@ -255,7 +282,18 @@ def plot_month(df, dfz, month_str, kategorie, yearly_sum=1000):
 # plot_month(df, month_str, kategorie, yearly_sum)
 
 
-def plot_yearmonths(df, dfz, kategorie, year=2024, yearly_sum=1000):
+def plot_yearmonths(df, dfz, kategorie, year=2024, yearly_sum=1000, output='text'):
+    """
+    Plot monthly energy distribution for a specific year.
+
+    Args:
+        df (DataFrame): Main energy data
+        dfz (DataFrame): Category metadata
+        kategorie (str): Energy category to plot
+        year (int): Year to plot
+        yearly_sum (float): Annual energy sum for scaling (default: 1000)
+        output (str): Output format ('text' or 'plot')
+    """
     # Filter data for the specific year and then group by month
     df['Year'] = pd.DatetimeIndex(df['ts']).year
     df['Month'] = pd.DatetimeIndex(df['ts']).month
@@ -268,22 +306,37 @@ def plot_yearmonths(df, dfz, kategorie, year=2024, yearly_sum=1000):
     # Get the Typtext for the kategorie
     typtext = get_name_from_id(dfz, kategorie)
 
-    plt.figure(figsize=(10, 6))
-    monthly_energy.plot(kind='bar', color='skyblue')
-
-    plt.title(
-        f"Monthly Energy Distribution for {year} ({typtext}), Total: {yearly_sum} kWh")
-    plt.xlabel("Month")
-    plt.xticks(ticks=range(12), labels=[
-               'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'], rotation=45)
-    plt.ylabel("Energy (kWh)")
-    plt.grid(axis='y', linestyle='--', alpha=0.7)
-    plt.tight_layout()
-    plt.show(block=True)
-
-    # Sum of all monthly kWh values and compare to yearly_sum
     summed_energy = monthly_energy.sum()
-    print(f"Sum of all monthly kWh's: {summed_energy:.2f} kWh")
+
+    if output == 'text':
+        print(
+            f"Monthly energy distribution for {year} ({typtext}), Total: {yearly_sum} kWh")
+        print("Month    kWh")
+        print("-----    ---")
+        for month, energy in monthly_energy.items():
+            month_name = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][month-1]
+            print(f"{month_name:<5}    {energy:.2f}")
+        print(f"\nSum of all monthly kWh's: {summed_energy:.2f} kWh")
+        return summed_energy
+    elif output == 'plot':
+        plt.figure(figsize=(10, 6))
+        monthly_energy.plot(kind='bar', color='skyblue')
+
+        plt.title(
+            f"Monthly Energy Distribution for {year} ({typtext}), Total: {yearly_sum} kWh")
+        plt.xlabel("Month")
+        plt.xticks(ticks=range(12), labels=[
+                   'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'], rotation=45)
+        plt.ylabel("Energy (kWh)")
+        plt.grid(axis='y', linestyle='--', alpha=0.7)
+        plt.tight_layout()
+        plt.show(block=False)
+        return summed_energy
+
+    tolerance = 0.01 * yearly_sum
+    assert yearly_sum - tolerance <= summed_energy <= yearly_sum + \
+        tolerance, "Sum of monthly kWh's does not fall within the ±1% tolerance of the provided yearly sum."
 
     tolerance = 0.01 * yearly_sum
     assert yearly_sum - tolerance <= summed_energy <= yearly_sum + \
@@ -293,7 +346,18 @@ def plot_yearmonths(df, dfz, kategorie, year=2024, yearly_sum=1000):
 # plot_monthly_energy_distribution(df, 'kategorie', year=2024, yearly_sum=1000)
 
 
-def plot_yeardays(df, dfz, kategorie, year_str, yearly_sum=1000):
+def plot_yeardays(df, dfz, kategorie, year_str, yearly_sum=1000, output='text'):
+    """
+    Plot daily energy distribution for a specific year.
+
+    Args:
+        df (DataFrame): Main energy data
+        dfz (DataFrame): Category metadata
+        kategorie (str): Energy category to plot
+        year_str (str): Year to plot (YYYY format)
+        yearly_sum (float): Annual energy sum for scaling (default: 1000)
+        output (str): Output format ('text' or 'plot')
+    """
     # Prepare to collect data
     start_date = pd.Timestamp(f"{year_str}-01-01")
     end_date = pd.Timestamp(f"{year_str}") + YearEnd()
@@ -312,32 +376,37 @@ def plot_yeardays(df, dfz, kategorie, year_str, yearly_sum=1000):
         kwh_series.append(daily_kwh)
         percentage_series.append(daily_percentage)
 
-    # Data for plotting
-    fig, ax1 = plt.subplots()
-
-    ax2 = ax1.twinx()
-    ax1.set_title(f"{year_str} - {category_name}")
-    ax1.plot(days_in_year, kwh_series, alpha=0.6, label='Daily kWh')
-    ax2.plot(days_in_year, percentage_series,
-             color='r', label='Percentage (%)')
-
-    ax1.set_xlabel('Day of Year')
-    ax1.set_ylabel('Energy (kWh)')
-    ax2.set_ylabel('Percentage (%)')
-    max_kwh = max(kwh_series)
-    max_percent = max(percentage_series)
-    upper_kwh = ((max_kwh // 5) + 1) * 5
-    upper_percent = ((max_percent // 1) + 1) * 1
-    ax1.set_ylim(bottom=0, top=upper_kwh)
-    ax2.set_ylim(bottom=0, top=upper_percent)
-
-    fig.tight_layout()
-    fig.legend(loc="upper left", bbox_to_anchor=(0.1, 0.9))
-
-    plt.show(block=False)
-
     total_yearly_kwh = round(sum(kwh_series), 2)
-    return total_yearly_kwh
+
+    if output == 'text':
+        print(
+            f"Yearly energy distribution for {year_str} ({category_name}), Total: {total_yearly_kwh} kWh")
+        return total_yearly_kwh
+    elif output == 'plot':
+        # Data for plotting
+        fig, ax1 = plt.subplots()
+
+        ax2 = ax1.twinx()
+        ax1.set_title(f"{year_str} - {category_name}")
+        ax1.plot(days_in_year, kwh_series, alpha=0.6, label='Daily kWh')
+        ax2.plot(days_in_year, percentage_series,
+                 color='r', label='Percentage (%)')
+
+        ax1.set_xlabel('Day of Year')
+        ax1.set_ylabel('Energy (kWh)')
+        ax2.set_ylabel('Percentage (%)')
+        max_kwh = max(kwh_series)
+        max_percent = max(percentage_series)
+        upper_kwh = ((max_kwh // 5) + 1) * 5
+        upper_percent = ((max_percent // 1) + 1) * 1
+        ax1.set_ylim(bottom=0, top=upper_kwh)
+        ax2.set_ylim(bottom=0, top=upper_percent)
+
+        fig.tight_layout()
+        fig.legend(loc="upper left", bbox_to_anchor=(0.1, 0.9))
+
+        plt.show(block=False)
+        return total_yearly_kwh
 
 # You can call this function like so:
 # total_yearly_kwh = plot_year(df, dfz, '2023', 'some_kategorie', 1000)

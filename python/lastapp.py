@@ -34,6 +34,10 @@ class EnergyProfileAnalyzer:
                             help='Year in YYYY format. Required for: pyd.')
         parser.add_argument('-k', '--kategorie', type=str, required=False, default='H0',
                             help='Category. Required for all functions.')
+        parser.add_argument('--no-plot', action='store_true',
+                            help='Disable matplotlib output for plotting functions. (Deprecated - use -o parameter instead)')
+        parser.add_argument('-o', '--output', type=str, default='text',
+                            choices=['text', 'plot'], help='Output format: text or plot')
         parser.add_argument('-ys', '--yearly_sum', type=int, default=1000,
                             help='Yearly sum. Optional for all functions.')
         parser.add_argument('-yr', '--year_range', type=int,
@@ -86,28 +90,28 @@ class EnergyProfileAnalyzer:
         elif self.args.function == 'pd':
             if self.args.date:
                 lf.plot_day(self.df, self.dfz, self.args.date,
-                            self.args.kategorie, self.args.yearly_sum)
+                            self.args.kategorie, self.args.yearly_sum, self.args.output)
             else:
                 print("Date is required for plot_day.")
 
         elif self.args.function == 'pm':
             if self.args.month:
                 lf.plot_month(self.df, self.dfz, self.args.month,
-                              self.args.kategorie, self.args.yearly_sum)
+                              self.args.kategorie, self.args.yearly_sum, self.args.output)
             else:
                 print("Month is required for plot_month.")
 
         elif self.args.function == 'pym':
             if self.args.year_range:
                 lf.plot_yearmonths(self.df, self.dfz, self.args.kategorie,
-                                   self.args.year_range, self.args.yearly_sum)
+                                   self.args.year_range, self.args.yearly_sum, self.args.output)
             else:
                 print("Year range is required for plot_yearmonths.")
 
         elif self.args.function == 'pyd':
             if self.args.year:
                 lf.plot_yeardays(self.df, self.dfz, self.args.kategorie,
-                                 self.args.year, self.args.yearly_sum)
+                                 self.args.year, self.args.yearly_sum, self.args.output)
             else:
                 print("Year is required for plot_yeardays.")
 
