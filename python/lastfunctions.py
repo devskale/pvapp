@@ -211,8 +211,8 @@ def plot_day(df, dfz, date_str, kategorie, yearly_sum=1000, output='text'):
 
         # Format x-axis
         plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
-        plt.gca().xaxis.set_major_locator(
-            mdates.MinuteLocator(byminute=[0, 15, 30, 45]))
+        # Display ticks every 6 hours (00:00, 06:00, 12:00, 18:00)
+        plt.gca().xaxis.set_major_locator(mdates.HourLocator(interval=6))
         plt.xticks(rotation=45)
 
         plt.legend()
