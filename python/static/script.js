@@ -58,8 +58,16 @@ document.addEventListener("DOMContentLoaded", () => {
       kategorie
     )}&yearly_sum=${encodeURIComponent(yearlySum)}`;
 
+    // Show loading state
     resultsArea.textContent = "Fetching data...";
-    chartArea.innerHTML = ""; // Clear previous chart area
+    chartArea.innerHTML = `
+      <div class="loading-container">
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+          <div class="loading"></div>
+          <span>Loading chart data...</span>
+        </div>
+      </div>
+    `;
 
     try {
       const response = await fetch(apiUrl);
@@ -94,6 +102,17 @@ document.addEventListener("DOMContentLoaded", () => {
             console.error("Failed to copy: ", err);
           });
       });
+
+      // Update the fetch button to show success briefly
+      fetchButton.classList.add("success");
+      fetchButton.innerHTML = `<i class="fas fa-check button-icon"></i> Success!`;
+      setTimeout(() => {
+        fetchButton.classList.remove("success");
+        fetchButton.innerHTML = `<i class="fas fa-chart-line button-icon"></i> Generate Chart`;
+      }, 2000);
+
+      // Clear the entire chart area before creating new chart
+      chartArea.innerHTML = "";
 
       // Create chart if we have monthly, daily or hourly data
       if (
@@ -375,12 +394,25 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     } catch (error) {
       console.error("Error fetching data:", error);
+      chartArea.innerHTML = `
+        <div class="error-message">
+          <i class="fas fa-exclamation-triangle" style="margin-right: 8px;"></i>
+          ${error.message}
+        </div>
+      `;
       resultsArea.textContent = `Error: ${error.message}`;
     }
   }
 
   // --- Event Listeners ---
   fetchButton.addEventListener("click", fetchData);
+
+  // Add transition animation when changing function
+  functionSelect.addEventListener("change", () => {
+    document.getElementById("output-area").classList.remove("fade-in");
+    void document.getElementById("output-area").offsetWidth; // Trigger reflow
+    document.getElementById("output-area").classList.add("fade-in");
+  });
 
   // --- Initial Load ---
   loadCategories();

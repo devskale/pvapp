@@ -6,46 +6,71 @@
     <title>Energy Profile Viewer</title>
     <link rel="stylesheet" href="/static/styles.css" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
   </head>
   <body>
-    <h1>Energy Profile Viewer</h1>
+    <div class="app-container">
+      <h1>Energy Profile Viewer</h1>
 
-    <div class="controls">
-      <label for="function-select">Function:</label>
-      <select id="function-select">
-        <option value="pd">Plot Day (pd)</option>
-        <option value="pm">Plot Month (pm)</option>
-        <option value="pym">Plot Year Months (pym)</option>
-        <option value="pyd">Plot Year Days (pyd)</option>
-      </select>
+      <div class="controls">
+        <div class="control-group">
+          <label for="function-select">Function</label>
+          <select id="function-select">
+            <option value="pd">Plot Day (pd)</option>
+            <option value="pm">Plot Month (pm)</option>
+            <option value="pym">Plot Year Months (pym)</option>
+            <option value="pyd">Plot Year Days (pyd)</option>
+          </select>
+        </div>
 
-      <label for="date-input">Date:</label>
-      <input
-        type="text"
-        id="date-input"
-        placeholder="YYYY-MM-DD / YYYY-MM / YYYY" />
+        <div class="control-group">
+          <label for="date-input">Date</label>
+          <input
+            type="text"
+            id="date-input"
+            placeholder="YYYY-MM-DD / YYYY-MM / YYYY" />
+        </div>
 
-      <label for="kategorie-select">Category:</label>
-      <select id="kategorie-select">
-        <!-- Options will be loaded dynamically -->
-        <option value="H0">Loading categories...</option>
-      </select>
+        <div class="control-group">
+          <label for="kategorie-select">Category</label>
+          <select id="kategorie-select">
+            <!-- Options will be loaded dynamically -->
+            <option value="H0">Loading categories...</option>
+          </select>
+        </div>
 
-      <label for="yearly-sum-input">Yearly Sum (kWh):</label>
-      <input type="number" id="yearly-sum-input" value="1000" />
+        <div class="control-group">
+          <label for="yearly-sum-input">Yearly Sum (kWh)</label>
+          <input type="number" id="yearly-sum-input" value="1000" />
+        </div>
 
-      <button id="fetch-button">Fetch Data</button>
-    </div>
+        <div class="button-wrapper">
+          <button id="fetch-button">
+            <i class="fas fa-chart-line button-icon"></i>
+            Generate Chart
+          </button>
+        </div>
+      </div>
 
-    <div id="output-area">
-      <div id="chart-area" class="small-chart"></div>
-      <div class="results-container">
-        <pre id="results">
-Select parameters and click "Fetch Data" to view energy profile</pre
-        >
-        <button id="copy-button" title="Copy JSON data to clipboard">
-          Copy JSON
-        </button>
+      <div id="output-area" class="fade-in">
+        <div id="chart-area" class="small-chart">
+          <div class="no-data-message">
+            <i
+              class="fas fa-chart-bar"
+              style="font-size: 3rem; color: #ccc; margin-bottom: 1rem"></i>
+            <p>
+              Select parameters and generate a chart to visualize energy data
+            </p>
+          </div>
+        </div>
+        <div class="results-container">
+          <pre id="results">Ready to fetch energy profile data</pre>
+          <button id="copy-button" title="Copy JSON data to clipboard">
+            Copy JSON
+          </button>
+        </div>
       </div>
     </div>
 
