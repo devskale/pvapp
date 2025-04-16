@@ -177,6 +177,21 @@ def plot_day(df, dfz, date_str, kategorie, yearly_sum=1000, output='text'):
     if output == 'text':
         print(f"Daily energy consumption for {date_str}: {total_energy} kWh.")
         print(f"Percentage of yearly consumption: {total_percentage} %.")
+        print("\nHourly Energy Values:")
+
+        # Aggregate quarter-hourly values into hourly sums
+        hourly_kwh = [0] * 24
+        hourly_percent = [0] * 24
+
+        for i, (kwh, percent) in enumerate(zip(actual_kwh_series, percentage_series)):
+            hour = i // 4
+            hourly_kwh[hour] += kwh
+            hourly_percent[hour] += percent
+
+        # Print hourly values
+        for hour in range(24):
+            print(
+                f"{hour:02d}:00 - {hourly_kwh[hour]:.2f} kWh ({hourly_percent[hour]:.4f}%)")
     elif output == 'plot':
         # Visualization
         plt.figure(figsize=(5, 3))
@@ -187,6 +202,8 @@ def plot_day(df, dfz, date_str, kategorie, yearly_sum=1000, output='text'):
 
         # Format x-axis
         plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+        plt.gca().xaxis.set_major_locator(
+            mdates.MinuteLocator(byminute=[0, 15, 30, 45]))
         plt.xticks(rotation=45)
 
         plt.legend()
