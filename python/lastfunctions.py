@@ -18,9 +18,10 @@ DATA_DIR = './data'
 ZIP_FILE = f'{DATA_DIR}/synthload2024.zip'
 
 # Suppress matplotlib warnings
-with warnings.catch_warnings():
-    warnings.simplefilter("ignore")
-    plt.show(block=False)
+if 'plt' in globals():
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        plt.show(block=False)
 
 
 def init_environment():
@@ -162,11 +163,11 @@ def plot_day(df, dfz, date_str, kategorie, yearly_sum=1000, output='text'):
     Returns:
         tuple: (total_energy, total_percentage) for the day
     """
-    try:
-        import matplotlib.pyplot as plt
-        import matplotlib.dates as mdates
-    except ImportError:
-        if output == 'plot':
+    if output == 'plot':
+        try:
+            import matplotlib.pyplot as plt
+            import matplotlib.dates as mdates
+        except ImportError:
             print(
                 "Error: matplotlib is required for plotting. Please install with 'pip install matplotlib'")
             return None, None
