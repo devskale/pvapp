@@ -21,9 +21,9 @@ This simple web application allows users to estimate the parameters of a solar m
 
 - Input for peak kW of solar installation
 - Calculation of:
-  - Required m2
+  - Required m²
   - Cost of installation
-  - Number of Panels
+  - Number of panels
   - kWh production per year
 - Graphical representation:
   - Daily average kWh production per month
@@ -44,4 +44,83 @@ Pull requests are welcome. For major changes, please open an issue first to disc
 
 ## License
 MIT License
-skaleio
+
+---
+
+## User Journey
+
+Web UI  
+User enters data as follows:
+
+---
+
+## UI Sketch: Leistungsverbrauchs UI
+
+```
++-------------------------------------------------------------+
+|                 Leistungsverbrauchs UI                      |
++-------------------------------------------------------------+
+| Verbrauchsmodell:                                           |
++-------------------------------------------------------------+
+| Sub-Einheits-Jahresverbrauch [_____] kWh                    |
+| Sub-Einheiten:           [_____] (1-100)                    |
+| Allgemeinteil:           [_____] % (default: 20%)           |
++-------------------------------------------------------------+
+| Verbraucher hinzufügen:                                     |
+| [Wärmepumpe] [Warmwasser] [Klimaanlage] [Allgemein] [+ Add] |
+| (Each with Einheitsanteil input)                            |
++-------------------------------------------------------------+
+| Erzeuger:                                                   |
+| PV-Anlage Leistung: [_____] kWp                             |
++-------------------------------------------------------------+
+| Energiespeicher:                                            |
+| Kapazität: [_____] kWh                                      |
+| Leistung: [_____] kW                                        |
++-------------------------------------------------------------+
+| [Berechnen]                                                 |
++-------------------------------------------------------------+
+| Dimensionierungs-Kommentar                                  |
+| - PV-Kommentar (gut: >1,5 kWp pro 1000 kWh Jahresverbrauch) |
+| - E-Speicher-Kommentar (gut: >1,5 kWh pro 1000 kWh Jahresverbrauch) |
+| - E-Speicher-Kommentar (gut: >1,5 kWh pro 1 kWp Nennleistung)      |
++-------------------------------------------------------------+
+| Ergebnis:                                                   |
+| - Gesamtverbrauch: ____ kWh                                 |
+| - PV-Anlage Deckung: ____ %                                 |
+| - Energiespeicher: ____ %                                   |
++-------------------------------------------------------------+
+| [Graph: Verbrauch vs. Erzeugung Lastprofil]                 |
++-------------------------------------------------------------+
+```
+
+**Notes:**
+- Inputs for annual consumption, number of units, and general overhead.
+- Add/remove consumers with specific shares.
+- PV system input for generation.
+- Results and graph shown after calculation.
+- Profiles are stored in a JSON file.
+
+Example profile:
+```json
+{
+  "Wärmepumpenlastprofil": {
+    "January": 12,
+    "February": 10,
+    "March": 8,
+    "April": 6,
+    "May": 5,
+    "June": 4,
+    "July": 4,
+    "August": 4,
+    "September": 6,
+    "October": 8,
+    "November": 10,
+    "December": 13
+  }
+}
+```
+
+Wärmepumpe Verteilung:
+
+---
+````
