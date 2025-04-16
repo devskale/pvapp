@@ -1,24 +1,105 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="de">
 <head>
-    <title>Solar Calculator</title>
-    <link rel="stylesheet" type="text/css" href="styles.css">
+  <meta charset="UTF-8">
+  <title>Leistungsverbrauchs UI</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-
 <body>
-    <h1>Solar Calculator</h1>
-    <form id="solarForm">
-        <label for="kW">kW (peak):</label>
-        <input type="number" id="kW">
-        <input type="submit" value="Calculate">
+  <div class="container">
+    <h1>Leistungsverbrauchs UI</h1>
+    <form id="verbrauchs-form">
+      <fieldset>
+        <legend>Verbrauchsmodell</legend>
+        <label>
+          <input type="radio" name="verbrauchsmodell" value="topdown" checked>
+          Top Down
+        </label>
+        <label>
+          <input type="radio" name="verbrauchsmodell" value="bottomup">
+          Bottom Up
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Verbrauch</legend>
+        <label>
+          Sub-Einheits-Jahresverbrauch (kWh):
+          <input type="number" id="jahresverbrauch" min="0" value="3500">
+        </label>
+        <label>
+          Sub-Einheiten:
+          <input type="number" id="einheiten" min="1" max="100" value="1">
+        </label>
+        <label>
+          Allgemeinteil (%):
+          <input type="number" id="allgemeinteil" min="0" max="100" value="20">
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Verbraucher hinzufügen</legend>
+        <div id="verbraucher-list">
+          <!-- Dynamically added consumers will appear here -->
+        </div>
+        <select id="verbraucher-select">
+          <option value="Wärmepumpe">Wärmepumpe</option>
+          <option value="Warmwasser">Warmwasser</option>
+          <option value="Klimaanlage">Klimaanlage</option>
+          <option value="Allgemein">Allgemein</option>
+        </select>
+        <input type="number" id="einheitsanteil" min="1" value="1" style="width:60px;">
+        <button type="button" id="add-verbraucher">+ Add</button>
+      </fieldset>
+
+      <fieldset>
+        <legend>Erzeuger</legend>
+        <label>
+          PV-Anlage Leistung (kWp):
+          <input type="number" id="pv-leistung" min="0" step="0.1" value="5">
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Energiespeicher</legend>
+        <label>
+          Kapazität (kWh):
+          <input type="number" id="speicher-kapazitaet" min="0" step="0.1" value="5">
+        </label>
+        <label>
+          Leistung (kW):
+          <input type="number" id="speicher-leistung" min="0" step="0.1" value="3">
+        </label>
+      </fieldset>
+
+      <button type="button" id="berechnen">Berechnen</button>
     </form>
-    <div id="results"></div>
-    <canvas id="myChart" width="400" height="200"></canvas>
 
+    <section id="kommentar">
+      <h2>Dimensionierungs-Kommentar</h2>
+      <ul>
+        <li>PV-Kommentar (gut: &gt;1,5 kWp pro 1000 kWh Jahresverbrauch)</li>
+        <li>E-Speicher-Kommentar (gut: &gt;1,5 kWh pro 1000 kWh Jahresverbrauch)</li>
+        <li>E-Speicher-Kommentar (gut: &gt;1,5 kWh pro 1 kWp Nennleistung)</li>
+      </ul>
+    </section>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.3/Chart.min.js"></script>
-    <script type="module" src="app.js"></script>
+    <section id="ergebnis">
+      <h2>Ergebnis</h2>
+      <ul>
+        <li>Gesamtverbrauch: <span id="gesamtverbrauch">-</span> kWh</li>
+        <li>PV-Anlage Deckung: <span id="pv-deckung">-</span> %</li>
+        <li>Energiespeicher: <span id="speicher-deckung">-</span> %</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Graph: Verbrauch vs. Erzeugung Lastprofil</h2>
+      <canvas id="lastprofil-chart" width="600" height="300"></canvas>
+    </section>
+  </div>
+  <script src="main.js"></script>
 </body>
-
 </html>
