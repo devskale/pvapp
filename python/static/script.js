@@ -12,6 +12,9 @@ document.addEventListener("DOMContentLoaded", () => {
   dateInput.value = `2024-06-29`;
   yearlySumInput.value = "8500";
 
+  // Store the data from the API for reuse
+  let currentData = null;
+
   // --- Load Categories ---
   async function loadCategories() {
     try {
@@ -89,28 +92,25 @@ document.addEventListener("DOMContentLoaded", () => {
         throw new Error(errorDetail);
       }
 
+      // Store data for later use
+      currentData = data;
+
       // Store JSON data but don't display it in the results area
       const jsonData = JSON.stringify(data, null, 2);
 
       // Update results area with a minimal message instead of full JSON
       resultsArea.textContent =
-        "Data retrieved successfully. Click 'Copy JSON' to copy the raw data.";
+        "Data retrieved successfully. Use the buttons below to copy the data.";
 
-      // Update copy button functionality
-      document.getElementById("copy-button").addEventListener("click", () => {
-        navigator.clipboard
-          .writeText(jsonData)
-          .then(() => {
-            const copyBtn = document.getElementById("copy-button");
-            copyBtn.textContent = "Copied!";
-            setTimeout(() => {
-              copyBtn.textContent = "Copy JSON";
-            }, 2000);
-          })
-          .catch((err) => {
-            console.error("Failed to copy: ", err);
-          });
-      });
+      // Update copy JSON button functionality
+      document
+        .getElementById("copy-button")
+        .addEventListener("click", copyJsonData);
+
+      // Update copy table button functionality
+      document
+        .getElementById("copy-table-button")
+        .addEventListener("click", copyTableData);
 
       // Update the fetch button to show success briefly
       fetchButton.classList.add("success");
@@ -233,28 +233,61 @@ document.addEventListener("DOMContentLoaded", () => {
 
                     if (isMonthly) {
                       value = data.monthly_values[index];
-                      percentField = value.percent_of_year;
+                      percentField =
+                        value.percent_of_year || value.percentage_of_year;
                       periodName = "year";
                     } else if (isDaily) {
                       value = data.daily_values[index];
                       percentField =
-                        value.percentage_of_month || value.percentage_of_year;
+                        value.percentage_of_month ||
+                        value.percent_of_month ||
+                        value.percentage_of_year ||
+                        value.percent_of_year;
                       periodName = "month";
                     } else if (isHourly) {
                       value = data.hourly_values[index];
-                      percentField = value.percentage_of_day;
+                      percentField =
+                        value.percentage_of_day ||
+                        value.percent_of_day ||
+                        value.percent;
                       periodName = "day";
                     } else if (isYearDays) {
                       value = data.daily_values[index];
-                      percentField = value.percentage_of_year;
+                      percentField =
+                        value.percentage_of_year || value.percent_of_year;
                       periodName = "year";
+                    }
+
+                    // If percentage is still undefined, calculate it based on max value
+                    if (percentField === undefined) {
+                      let maxValue = 0;
+                      if (isMonthly) {
+                        maxValue = Math.max(
+                          ...data.monthly_values.map((m) => m.kwh)
+                        );
+                      } else if (isDaily || isYearDays) {
+                        maxValue = Math.max(
+                          ...data.daily_values.map((d) => d.kwh)
+                        );
+                      } else if (isHourly) {
+                        maxValue = Math.max(
+                          ...data.hourly_values.map((h) => h.kwh)
+                        );
+                      }
+
+                      if (maxValue > 0) {
+                        percentField = ((value.kwh / maxValue) * 100).toFixed(
+                          1
+                        );
+                      } else {
+                        percentField = "0.0";
+                      }
                     }
 
                     return `${value.kwh.toFixed(
                       2
                     )} kWh (${percentField}% of ${periodName})`;
                   },
-                  // For year days, show the full date in tooltip title
                   title: (context) => {
                     if (isYearDays) {
                       const index = context[0].dataIndex;
@@ -448,6 +481,136 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>
       `;
       resultsArea.textContent = `Error: ${error.message}`;
+
+      // Reset stored data
+      currentData = null;
+    }
+  }
+
+  // Copy JSON data to clipboard
+  function copyJsonData() {
+    if (!currentData) {
+      return;
+    }
+
+    const jsonData = JSON.stringify(currentData, null, 2);
+    navigator.clipboard
+      .writeText(jsonData)
+      .then(() => {
+        const copyBtn = document.getElementById("copy-button");
+        copyBtn.textContent = "Copied!";
+        setTimeout(() => {
+          copyBtn.textContent = "Copy JSON";
+        }, 2000);
+      })
+      .catch((err) => {
+        console.error("Failed to copy: ", err);
+      });
+  }
+
+  // Format and copy data as a table for spreadsheets
+  function copyTableData() {
+    if (!currentData) {
+      return;
+    }
+
+    const selectedFunction = functionSelect.value;
+    const kategorie = kategorieSelect.value;
+    const date = dateInput.value.trim();
+    const yearlySum = yearlySumInput.value;
+    let tableData = "";
+
+    // Helper function to format numbers with comma as decimal separator
+    const formatNumber = (num, decimals = 2) => {
+      return num.toFixed(decimals).replace(".", ",");
+    };
+
+    // Create a descriptive title for the table
+    let titleInfo = {
+      functionName: "",
+      period: date,
+      category: kategorie,
+      yearlySum: yearlySum,
+    };
+
+    switch (selectedFunction) {
+      case "pd":
+        titleInfo.functionName = "Daily Profile (hourly data)";
+        break;
+      case "pm":
+        titleInfo.functionName = "Monthly Profile (daily data)";
+        break;
+      case "pym":
+        titleInfo.functionName = "Yearly Profile (monthly data)";
+        break;
+      case "pyd":
+        titleInfo.functionName = "Yearly Profile (daily data)";
+        break;
+    }
+
+    // Get the category long name
+    const selectedOption =
+      kategorieSelect.options[kategorieSelect.selectedIndex];
+    const categoryLongName =
+      selectedOption.textContent.split(" (")[1]?.replace(")", "") || kategorie;
+
+    // Add title and metadata rows
+    tableData += `${titleInfo.functionName}\t\n`;
+    tableData += `Date: ${titleInfo.period}\t\n`;
+    tableData += `Category: ${titleInfo.category} (${categoryLongName})\t\n`;
+    tableData += `Yearly Sum: ${formatNumber(
+      parseFloat(titleInfo.yearlySum)
+    )} kWh\t\n`;
+    tableData += `\t\n`; // Empty row for spacing
+
+    try {
+      // Format data based on the function type
+      if (selectedFunction === "pd" && currentData.hourly_values) {
+        // Hourly data for a day
+        tableData += "Hour\tKWh\n"; // Removed percentage column
+        currentData.hourly_values.forEach((hour) => {
+          // Format hour with leading zero and colon for better readability
+          const formattedHour = `${String(hour.hour).padStart(2, "0")}:00`;
+          tableData += `${formattedHour}\t${formatNumber(hour.kwh, 2)}\n`; // Removed percentage
+        });
+      } else if (selectedFunction === "pm" && currentData.daily_values) {
+        // Daily data for a month
+        tableData += "Date\tKWh\n"; // Removed percentage column
+        currentData.daily_values.forEach((day) => {
+          const dayNum = day.date.split("-")[2]; // Extract day number
+          tableData += `${dayNum}\t${formatNumber(day.kwh, 2)}\n`; // Removed percentage
+        });
+      } else if (selectedFunction === "pym" && currentData.monthly_values) {
+        // Monthly data for a year
+        tableData += "Month\tKWh\n"; // Removed percentage column
+        currentData.monthly_values.forEach((month) => {
+          tableData += `${month.month_name}\t${formatNumber(month.kwh, 2)}\n`; // Removed percentage
+        });
+      } else if (selectedFunction === "pyd" && currentData.daily_values) {
+        // Daily data for a year
+        tableData += "Date\tKWh\n"; // Removed percentage column
+        currentData.daily_values.forEach((day) => {
+          tableData += `${day.date}\t${formatNumber(day.kwh, 2)}\n`; // Removed percentage
+        });
+      } else {
+        throw new Error("No compatible data found to format as table");
+      }
+
+      navigator.clipboard
+        .writeText(tableData)
+        .then(() => {
+          const copyTableBtn = document.getElementById("copy-table-button");
+          copyTableBtn.textContent = "Table Copied!";
+          setTimeout(() => {
+            copyTableBtn.textContent = "Copy as Table";
+          }, 2000);
+        })
+        .catch((err) => {
+          console.error("Failed to copy table data: ", err);
+        });
+    } catch (error) {
+      console.error("Error formatting table data:", error);
+      resultsArea.textContent += `\nError formatting table: ${error.message}`;
     }
   }
 

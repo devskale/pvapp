@@ -380,3 +380,34 @@ select {
 .fade-in {
   animation: fadeIn 0.5s ease forwards;
 }
+
+/* Add this to your existing styles.css file */
+
+.button-container {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+#copy-button,
+#copy-table-button {
+  flex: 1;
+  padding: 8px 12px;
+  background-color: #4a6fa5;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-size: 14px;
+}
+
+#copy-button:hover,
+#copy-table-button:hover {
+  background-color: #3a5982;
+}
+
+#copy-button:active,
+#copy-table-button:active {
+  background-color: #2c4361;
+}
