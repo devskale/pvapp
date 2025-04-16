@@ -72,21 +72,22 @@ document.addEventListener("DOMContentLoaded", () => {
         throw new Error(errorDetail);
       }
 
-      // Display JSON data in hidden element for copying
+      // Store JSON data but don't display it in the results area
       const jsonData = JSON.stringify(data, null, 2);
-      resultsArea.textContent = jsonData;
 
-      // Add copy button functionality
+      // Update results area with a minimal message instead of full JSON
+      resultsArea.textContent =
+        "Data retrieved successfully. Click 'Copy JSON' to copy the raw data.";
+
+      // Update copy button functionality
       document.getElementById("copy-button").addEventListener("click", () => {
         navigator.clipboard
           .writeText(jsonData)
           .then(() => {
             const copyBtn = document.getElementById("copy-button");
-            copyBtn.innerHTML =
-              '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/></svg>';
+            copyBtn.textContent = "Copied!";
             setTimeout(() => {
-              copyBtn.innerHTML =
-                '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/><path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/></svg>';
+              copyBtn.textContent = "Copy JSON";
             }, 2000);
           })
           .catch((err) => {
@@ -98,7 +99,8 @@ document.addEventListener("DOMContentLoaded", () => {
       if (
         (selectedFunction === "pym" && data.monthly_values) ||
         (selectedFunction === "pm" && data.daily_values) ||
-        (selectedFunction === "pd" && data.hourly_values)
+        (selectedFunction === "pd" && data.hourly_values) ||
+        (selectedFunction === "pyd" && data.daily_values)
       ) {
         const ctx = document.createElement("canvas");
         chartArea.appendChild(ctx);
@@ -106,6 +108,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const isMonthly = selectedFunction === "pym";
         const isDaily = selectedFunction === "pm";
         const isHourly = selectedFunction === "pd";
+        const isYearDays = selectedFunction === "pyd";
 
         let labels, values, percentages;
 
@@ -123,6 +126,14 @@ document.addEventListener("DOMContentLoaded", () => {
           labels = data.hourly_values.map((h) => h.hour); // Hour of day
           values = data.hourly_values.map((h) => h.kwh);
           percentages = data.hourly_values.map((h) => h.percentage_of_day);
+        } else if (isYearDays) {
+          // Format as MM-DD for better readability
+          labels = data.daily_values.map((d) => {
+            const dateParts = d.date.split("-");
+            return `${dateParts[1]}-${dateParts[2]}`;
+          });
+          values = data.daily_values.map((d) => d.kwh);
+          percentages = data.daily_values.map((d) => d.percentage_of_year);
         }
 
         // Extract short and long form name from selected category
@@ -136,7 +147,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Format date based on the function
         let formattedDate;
-        if (isMonthly) {
+        if (isMonthly || isYearDays) {
           formattedDate = dateInput.value.split("-")[0]; // Year only
         } else if (isDaily) {
           const dateComponents = date.split("-");
@@ -148,8 +159,10 @@ document.addEventListener("DOMContentLoaded", () => {
           formattedDate = date; // Full date for hourly view
         }
 
-        new Chart(ctx, {
-          type: "bar",
+        // For Year Days, set a specific chart type to handle the large number of data points
+        const chartType = isYearDays ? "line" : "bar";
+        const chartConfig = {
+          type: chartType,
           data: {
             labels: labels,
             datasets: [
@@ -159,6 +172,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 backgroundColor: "rgba(54, 162, 235, 0.5)",
                 borderColor: "rgba(54, 162, 235, 1)",
                 borderWidth: 1,
+                // For line chart (year days), make it smooth
+                tension: isYearDays ? 0.2 : 0,
+                // For line chart, ensure points are shown
+                pointRadius: isYearDays ? 1 : 0,
+                // For year days, fill under the line
+                fill: isYearDays ? true : false,
               },
             ],
           },
@@ -196,11 +215,23 @@ document.addEventListener("DOMContentLoaded", () => {
                       value = data.hourly_values[index];
                       percentField = value.percentage_of_day;
                       periodName = "day";
+                    } else if (isYearDays) {
+                      value = data.daily_values[index];
+                      percentField = value.percentage_of_year;
+                      periodName = "year";
                     }
 
                     return `${value.kwh.toFixed(
                       2
                     )} kWh (${percentField}% of ${periodName})`;
+                  },
+                  // For year days, show the full date in tooltip title
+                  title: (context) => {
+                    if (isYearDays) {
+                      const index = context[0].dataIndex;
+                      return data.daily_values[index].date;
+                    }
+                    return context[0].label;
                   },
                 },
               },
@@ -223,6 +254,9 @@ document.addEventListener("DOMContentLoaded", () => {
                     } else if (isHourly) {
                       values = data.hourly_values;
                       dateInfo = date;
+                    } else if (isYearDays) {
+                      values = data.daily_values;
+                      dateInfo = dateInput.value.split("-")[0];
                     }
 
                     const maxValue = values.reduce(
@@ -234,6 +268,7 @@ document.addEventListener("DOMContentLoaded", () => {
                       values[0]
                     );
                     const totalKwh = values.reduce((sum, v) => sum + v.kwh, 0);
+                    const avgKwh = totalKwh / values.length;
 
                     let periodName, maxLabel, minLabel;
 
@@ -249,9 +284,16 @@ document.addEventListener("DOMContentLoaded", () => {
                       periodName = "Day";
                       maxLabel = `${maxValue.hour}:00`;
                       minLabel = `${minValue.hour}:00`;
+                    } else if (isYearDays) {
+                      periodName = "Year";
+                      // Format date as MM-DD for readability
+                      const maxDateParts = maxValue.date.split("-");
+                      const minDateParts = minValue.date.split("-");
+                      maxLabel = `${maxDateParts[1]}-${maxDateParts[2]}`;
+                      minLabel = `${minDateParts[1]}-${minDateParts[2]}`;
                     }
 
-                    return [
+                    const legendItems = [
                       {
                         text: `${periodName}: ${dateInfo}`,
                         fillStyle: "transparent",
@@ -262,6 +304,18 @@ document.addEventListener("DOMContentLoaded", () => {
                         fillStyle: "transparent",
                         hidden: false,
                       },
+                    ];
+
+                    // For year days, also show average
+                    if (isYearDays) {
+                      legendItems.push({
+                        text: `Avg: ${avgKwh.toFixed(1)} kWh/day`,
+                        fillStyle: "transparent",
+                        hidden: false,
+                      });
+                    }
+
+                    legendItems.push(
                       {
                         text: `Max: ${maxLabel} (${maxValue.kwh.toFixed(
                           1
@@ -277,8 +331,10 @@ document.addEventListener("DOMContentLoaded", () => {
                         )}%)`,
                         fillStyle: "rgba(54, 162, 235, 0.2)",
                         hidden: false,
-                      },
-                    ];
+                      }
+                    );
+
+                    return legendItems;
                   },
                 },
               },
@@ -291,9 +347,31 @@ document.addEventListener("DOMContentLoaded", () => {
                   text: "kWh",
                 },
               },
+              x: {
+                // For year days, don't show all labels as it would be too crowded
+                ticks: {
+                  autoSkip: isYearDays,
+                  maxTicksLimit: isYearDays ? 12 : undefined, // Show roughly one label per month for year days
+                  maxRotation: isYearDays ? 0 : 0, // Don't rotate labels for year days
+                  callback: function (value, index, values) {
+                    // For year days, only show the 1st of each month
+                    if (isYearDays) {
+                      const label = this.getLabelForValue(value);
+                      // If the label ends with "-01", it's the first of a month
+                      if (label.endsWith("-01")) {
+                        return label;
+                      }
+                      return ""; // Hide other labels
+                    }
+                    return this.getLabelForValue(value);
+                  },
+                },
+              },
             },
           },
-        });
+        };
+
+        new Chart(ctx, chartConfig);
       }
     } catch (error) {
       console.error("Error fetching data:", error);
