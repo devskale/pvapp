@@ -7,6 +7,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const resultsArea = document.getElementById("results");
   const chartArea = document.getElementById("chart-area"); // Keep for potential future chart integration
 
+  // Set default values
+  const today = new Date();
+  dateInput.value = `2024-05-03`;
+  yearlySumInput.value = "5500";
+
   // --- Load Categories ---
   async function loadCategories() {
     try {
@@ -69,6 +74,50 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // Display JSON data
       resultsArea.textContent = JSON.stringify(data, null, 2);
+
+      // Create chart if we have monthly data
+      if (selectedFunction === "pym" && data.monthly_values) {
+        const ctx = document.createElement("canvas");
+        chartArea.appendChild(ctx);
+
+        new Chart(ctx, {
+          type: "bar",
+          data: {
+            labels: data.monthly_values.map((m) => m.month_name),
+            datasets: [
+              {
+                label: `${data.category_name} (kWh)`,
+                data: data.monthly_values.map((m) => m.kwh),
+                backgroundColor: "rgba(54, 162, 235, 0.5)",
+                borderColor: "rgba(54, 162, 235, 1)",
+                borderWidth: 1,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              tooltip: {
+                callbacks: {
+                  label: (context) => {
+                    const month = data.monthly_values[context.dataIndex];
+                    return `${month.kwh} kWh (${month.percent_of_year}% of year)`;
+                  },
+                },
+              },
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                title: {
+                  display: true,
+                  text: "kWh",
+                },
+              },
+            },
+          },
+        });
+      }
 
       // --- Optional: Basic Charting (Example using Chart.js) ---
       // Uncomment and adapt if you want to add charting

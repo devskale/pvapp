@@ -103,19 +103,17 @@ async def get_plot_month(
 
 @app.get("/api/pym") # plot_yearmonths
 async def get_plot_yearmonths(
-    date: str = Query(..., description="Year in YYYY format"),
+    date: str = Query(..., description="Year in YYYY or YYYY-MM or YYYY-MM-DD format"),
     kategorie: str = Query('H0', description="Energy category code"),
     yearly_sum: int = Query(1000, description="Yearly sum in kWh")
 ):
     """API endpoint for yearly energy profile aggregated by month."""
     try:
-        # Validate date format roughly
-        if len(date) != 4:
-             raise ValueError("Invalid date format")
-        pd.to_datetime(date, format='%Y')
-        year_str = date
+        # Extract year from date string (accepts YYYY, YYYY-MM, or YYYY-MM-DD)
+        date_obj = pd.to_datetime(date)
+        year_str = str(date_obj.year)
     except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY.")
+        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY, YYYY-MM, or YYYY-MM-DD.")
 
     try:
         result = lf.plot_yearmonths(df, dfz, kategorie, year_str, yearly_sum, output='json')
