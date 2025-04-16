@@ -4,26 +4,59 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Energy Profile Viewer</title>
-    <link rel="stylesheet" href="/static/styles.css" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style type="text/tailwindcss">
+      #chart-area canvas {
+        max-width: 100%;
+        height: auto !important;
+      }
+      pre {
+        white-space: pre-wrap;
+        word-wrap: break-word;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      .fade-in {
+        animation: fadeIn 0.5s ease-in-out;
+      }
+      ::placeholder {
+        color: #9ca3af;
+        opacity: 1;
+      }
+    </style>
   </head>
-  <body>
-    <div class="app-container">
-      <div class="header">
-        <img
-          src="https://skale.dev/wp-content/uploads/2024/10/skalelogo_grey_trans-300x150.png"
-          alt="SKALE Logo"
-          class="logo" />
-        <h1>Energy Profile Viewer</h1>
+  <body class="bg-gray-100 font-sans">
+    <div class="container mx-auto p-4 md:p-8 max-w-6xl">
+      <div
+        class="flex items-center justify-between bg-gradient-to-r from-green-500 to-emerald-600 text-white p-4 rounded-lg shadow-md mb-6">
+        <div class="flex items-center">
+          <img
+            src="https://skale.dev/wp-content/uploads/2024/10/skalelogo_grey_trans-300x150.png"
+            alt="SKALE Logo"
+            class="h-10 mr-4" />
+          <h1 class="text-2xl md:text-3xl font-bold">Energy Profile Viewer</h1>
+        </div>
       </div>
 
-      <div class="controls">
-        <div class="control-group">
-          <label for="function-select">Function</label>
-          <select id="function-select">
+      <div
+        class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6 p-4 bg-white rounded-lg shadow">
+        <div class="flex flex-col">
+          <label for="function-select" class="mb-1 font-medium text-gray-700"
+            >Function</label
+          >
+          <select
+            id="function-select"
+            class="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent">
             <option value="pd">Plot Day</option>
             <option value="pm">Plot Month</option>
             <option value="pym">Plot Year Months</option>
@@ -31,56 +64,82 @@
           </select>
         </div>
 
-        <div class="control-group">
-          <label for="date-input">Date</label>
+        <div class="flex flex-col">
+          <label for="date-input" class="mb-1 font-medium text-gray-700"
+            >Date</label
+          >
           <input
             type="text"
             id="date-input"
-            placeholder="YYYY-MM-DD / YYYY-MM / YYYY" />
+            placeholder="YYYY-MM-DD / YYYY-MM / YYYY"
+            class="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent" />
         </div>
 
-        <div class="control-group">
-          <label for="kategorie-select">Category</label>
-          <select id="kategorie-select">
-            <!-- Options will be loaded dynamically -->
+        <div class="flex flex-col">
+          <label for="kategorie-select" class="mb-1 font-medium text-gray-700"
+            >Category</label
+          >
+          <select
+            id="kategorie-select"
+            class="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent">
             <option value="H0">Loading categories...</option>
           </select>
         </div>
 
-        <div class="control-group">
-          <label for="yearly-sum-input">Yearly Sum (kWh)</label>
-          <input type="number" id="yearly-sum-input" value="1000" />
+        <div class="flex flex-col">
+          <label for="yearly-sum-input" class="mb-1 font-medium text-gray-700"
+            >Yearly Sum (kWh)</label
+          >
+          <input
+            type="number"
+            id="yearly-sum-input"
+            value="1000"
+            class="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent" />
         </div>
 
-        <div class="button-wrapper">
-          <button id="fetch-button">
-            <i class="fas fa-chart-line button-icon"></i>
+        <div class="flex items-end">
+          <button
+            id="fetch-button"
+            class="w-full flex items-center justify-center bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition duration-300 ease-in-out shadow hover:shadow-lg">
+            <i class="fas fa-chart-line mr-2"></i>
             Generate Chart
           </button>
         </div>
       </div>
 
-      <div id="output-area" class="fade-in">
-        <div id="chart-area" class="small-chart">
-          <div class="no-data-message">
-            <i
-              class="fas fa-chart-bar"
-              style="font-size: 3rem; color: #ccc; margin-bottom: 1rem"></i>
+      <div id="output-area" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div
+          id="chart-area"
+          class="lg:col-span-2 bg-white p-4 rounded-lg shadow min-h-[300px] flex justify-center items-center">
+          <div id="no-data-message" class="text-center text-gray-400">
+            <i class="fas fa-chart-bar text-4xl mb-4"></i>
             <p>
               Select parameters and generate a chart to visualize energy data
             </p>
           </div>
         </div>
-        <div class="results-container">
-          <pre id="results">Ready to fetch energy profile data</pre>
-          <div class="button-container">
-            <button id="copy-button" title="Copy JSON data to clipboard">
-              Copy JSON
+
+        <div class="bg-white p-4 rounded-lg shadow flex flex-col">
+          <h3 class="text-lg font-semibold mb-2 text-gray-800 border-b pb-1">
+            Raw Data (JSON)
+          </h3>
+          <pre
+            id="results"
+            class="flex-grow bg-gray-50 p-3 border border-gray-200 rounded text-sm text-gray-700 overflow-auto max-h-80 mb-4">
+Ready to fetch energy profile data</pre
+          >
+          <div class="flex flex-col sm:flex-row gap-2 mt-auto">
+            <button
+              id="copy-button"
+              title="Copy JSON data to clipboard"
+              class="flex-1 flex items-center justify-center bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-3 rounded text-sm transition duration-300 ease-in-out shadow hover:shadow-md">
+              <i class="fas fa-copy mr-2"></i> Copy JSON
             </button>
             <button
               id="copy-table-button"
-              title="Copy data as table for spreadsheets">
-              Copy as Table
+              title="Copy data as table for spreadsheets"
+              class="flex-1 flex items-center justify-center bg-teal-500 hover:bg-teal-600 text-white font-semibold py-2 px-3 rounded text-sm transition duration-300 ease-in-out shadow hover:shadow-md">
+              <i class="fas fa-table mr-2"></i> Copy as Table
             </button>
           </div>
         </div>
