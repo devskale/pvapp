@@ -97,7 +97,7 @@ document.addEventListener("DOMContentLoaded", () => {
       // Create chart if we have monthly or daily data
       if (
         (selectedFunction === "pym" && data.monthly_values) ||
-        (selectedFunction === "plot_month" && data.daily_values)
+        (selectedFunction === "pm" && data.daily_values)
       ) {
         const ctx = document.createElement("canvas");
         chartArea.appendChild(ctx);
@@ -105,15 +105,31 @@ document.addEventListener("DOMContentLoaded", () => {
         const isMonthly = selectedFunction === "pym";
         const labels = isMonthly
           ? data.monthly_values.map((m) => m.month_name)
-          : data.daily_values.map(
-              (d) => d.date.split("-")[2] + " " + d.date.split("-")[1]
-            );
+          : data.daily_values.map((d) => d.date.split("-")[2]); // Just show day number
         const values = isMonthly
           ? data.monthly_values.map((m) => m.kwh)
           : data.daily_values.map((d) => d.kwh);
         const percentages = isMonthly
           ? data.monthly_values.map((m) => m.percent_of_year)
-          : data.daily_values.map((d) => d.percentage_of_year);
+          : data.daily_values.map(
+              (d) => d.percentage_of_month || d.percentage_of_year
+            );
+
+        // Extract short and long form name from selected category
+        const selectedOption =
+          kategorieSelect.options[kategorieSelect.selectedIndex];
+        const shortName = selectedOption.value;
+        const longName =
+          selectedOption.textContent.split(" (")[1]?.replace(")", "") ||
+          data.category_name ||
+          "";
+
+        // Format date to yyyy-mm format
+        const dateComponents = date.split("-");
+        const formattedDate =
+          dateComponents.length >= 2
+            ? `${dateComponents[0]}-${dateComponents[1]}`
+            : dateComponents[0];
 
         new Chart(ctx, {
           type: "bar",
@@ -121,7 +137,7 @@ document.addEventListener("DOMContentLoaded", () => {
             labels: labels,
             datasets: [
               {
-                label: `${data.category_name} (kWh)`,
+                label: `${data.category_name || kategorie} (kWh)`,
                 data: values,
                 backgroundColor: "rgba(54, 162, 235, 0.5)",
                 borderColor: "rgba(54, 162, 235, 1)",
@@ -134,11 +150,7 @@ document.addEventListener("DOMContentLoaded", () => {
             plugins: {
               title: {
                 display: true,
-                text: `${
-                  kategorieSelect.options[
-                    kategorieSelect.selectedIndex
-                  ].text.split(" (")[0]
-                } - ${data.category_name}`,
+                text: `${shortName} - ${longName} ${formattedDate}`,
                 font: {
                   size: 16,
                   weight: "bold",
@@ -151,13 +163,16 @@ document.addEventListener("DOMContentLoaded", () => {
               tooltip: {
                 callbacks: {
                   label: (context) => {
-                    const month = data.monthly_values[context.dataIndex];
+                    const index = context.dataIndex;
                     const value = isMonthly
-                      ? data.monthly_values[context.dataIndex]
-                      : data.daily_values[context.dataIndex];
-                    return `${value.kwh} kWh (${
-                      value.percent_of_year || value.percentage_of_year
-                    }% of year)`;
+                      ? data.monthly_values[index]
+                      : data.daily_values[index];
+                    const percentField = isMonthly
+                      ? "percent_of_year"
+                      : value.percentage_of_month || value.percentage_of_year;
+                    return `${value.kwh} kWh (${percentField}% of ${
+                      isMonthly ? "year" : "month"
+                    })`;
                   },
                 },
               },
@@ -181,10 +196,13 @@ document.addEventListener("DOMContentLoaded", () => {
                       values[0]
                     );
                     const totalKwh = values.reduce((sum, v) => sum + v.kwh, 0);
+                    const dateInfo = isMonthly
+                      ? dateInput.value.split("-")[0]
+                      : date;
 
                     return [
                       {
-                        text: `Year: ${dateInput.value.split("-")[0]}`,
+                        text: `${isMonthly ? "Year" : "Month"}: ${dateInfo}`,
                         fillStyle: "transparent",
                         hidden: false,
                       },
@@ -195,14 +213,18 @@ document.addEventListener("DOMContentLoaded", () => {
                       },
                       {
                         text: `Max: ${
-                          isMonthly ? maxValue.month_name : maxValue.date
+                          isMonthly
+                            ? maxValue.month_name
+                            : maxValue.date.split("-")[2]
                         } (${maxValue.kwh.toFixed(1)} kWh, 100%)`,
                         fillStyle: "rgba(54, 162, 235, 0.5)",
                         hidden: false,
                       },
                       {
                         text: `Min: ${
-                          isMonthly ? minValue.month_name : minValue.date
+                          isMonthly
+                            ? minValue.month_name
+                            : minValue.date.split("-")[2]
                         } (${minValue.kwh.toFixed(1)} kWh, ${Math.round(
                           (minValue.kwh / maxValue.kwh) * 100
                         )}%)`,
@@ -226,57 +248,11 @@ document.addEventListener("DOMContentLoaded", () => {
           },
         });
       }
-
-      // --- Optional: Basic Charting (Example using Chart.js) ---
-      // Uncomment and adapt if you want to add charting
-      /*
-            if (data && data.timestamps && data.values) { // Check if data suitable for charting exists
-                renderChart(data.timestamps, data.values, selectedFunction, kategorie, date);
-            }
-            */
     } catch (error) {
       console.error("Error fetching data:", error);
       resultsArea.textContent = `Error: ${error.message}`;
     }
   }
-
-  // --- Optional: Chart Rendering Function (Example) ---
-  /*
-    function renderChart(timestamps, values, func, kat, dateStr) {
-        // Assumes you have included Chart.js library in index.html
-        // <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-        const ctx = document.createElement('canvas');
-        chartArea.appendChild(ctx);
-
-        new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: timestamps, // Assuming timestamps are suitable labels
-                datasets: [{
-                    label: `Energy Profile (${func} - ${kat} - ${dateStr})`,
-                    data: values,
-                    borderColor: 'rgb(75, 192, 192)',
-                    tension: 0.1
-                }]
-            },
-            options: {
-                scales: {
-                    x: {
-                        // Add time scale configuration if needed
-                        // type: 'time', 
-                        // time: { unit: 'hour' } 
-                    },
-                    y: {
-                        beginAtZero: true,
-                        title: { display: true, text: 'kWh' }
-                    }
-                },
-                responsive: true,
-                maintainAspectRatio: false
-            }
-        });
-    }
-    */
 
   // --- Event Listeners ---
   fetchButton.addEventListener("click", fetchData);
