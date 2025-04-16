@@ -4,6 +4,7 @@ import lastfunctions as lf
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
+import json
 
 
 class EnergyProfileAnalyzer:
@@ -37,7 +38,7 @@ class EnergyProfileAnalyzer:
         parser.add_argument('--no-plot', action='store_true',
                             help='Disable matplotlib output for plotting functions. (Deprecated - use -o parameter instead)')
         parser.add_argument('-o', '--output', type=str, default='text',
-                            choices=['text', 'plot'], help='Output format: text or plot')
+                            choices=['text', 'plot', 'json'], help='Output format: text, plot, or json')
         parser.add_argument('-ys', '--yearly_sum', type=int, default=1000,
                             help='Yearly sum. Optional for all functions.')
         parser.add_argument('-yr', '--year_range', type=int,
@@ -49,13 +50,16 @@ class EnergyProfileAnalyzer:
     def __init__(self, args):
         """Initialize the analyzer with command line arguments."""
         self.args = args
+        # Add a reference to the parser for printing help
 
     def run(self):
         """Execute the analysis based on provided arguments."""
         # Check if any argument is True (meaning it was given)
-        if not any(vars(self.args).values()):
-            self.args.parser.print_help()
-            exit(0)
+        # A simple check like this might not be robust if default values change
+        # Consider a more specific check if needed
+        # if not any(vars(self.args).values()):
+        #     self.parser.print_help()
+        #     exit(0)
 
         if self.args.init:
             init_environment()
@@ -63,74 +67,94 @@ class EnergyProfileAnalyzer:
 
         if self.args.data_file:
             self.df, self.dfz = init_dataframes(self.args.data_file)
-            # Display the first few rows of each dataframe
-            print("DataFrame df:")
-            print(self.df.head())
-
-            print("DataFrame dfz:")
-            print(self.dfz.head())
-
-            # Create a dictionary for 'zuordnung'
-            self.zuordnung = self.dfz[['Typnummer', 'Typname', 'Typtext']
-                                      ].to_dict(orient='records')
+            if self.args.output != 'json': # Avoid printing dataframes in json mode
+                print("DataFrame df loaded.")
+                # print(self.df.head())
+                print("DataFrame dfz loaded.")
+                # print(self.dfz.head())
         else:
             self.df, self.dfz = init_dataframes('./data/synthload2024.xlsx')
 
+        result_data = None
+
         if self.args.function == 'de':
             if self.args.date:
-                daily_kwh, daily_percentage = lf.day_energy(
+                # Assuming lf.day_energy will be modified to return a dict for json
+                result_data = lf.day_energy(
                     self.df, self.args.date, self.args.kategorie, self.args.yearly_sum)
-                print(
-                    f"Daily energy consumption for {self.args.date}: {daily_kwh} kWh.")
-                print(
-                    f"Percentage of yearly consumption: {daily_percentage} %.")
-            else:
+                if self.args.output != 'json':
+                    daily_kwh, daily_percentage = result_data # Unpack if not json
+                    print(
+                        f"Daily energy consumption for {self.args.date}: {daily_kwh} kWh.")
+                    print(
+                        f"Percentage of yearly consumption: {daily_percentage} %.")
+            elif self.args.output != 'json':
                 print("Date is required for day_energy.")
 
         elif self.args.function == 'pd':
             if self.args.date:
-                lf.plot_day(self.df, self.dfz, self.args.date,
-                            self.args.kategorie, self.args.yearly_sum, self.args.output)
-            else:
+                # Assuming lf.plot_day will be modified to return a dict for json
+                result_data = lf.plot_day(self.df, self.dfz, self.args.date,
+                                        self.args.kategorie, self.args.yearly_sum, self.args.output)
+            elif self.args.output != 'json':
                 print("Date is required for plot_day.")
 
         elif self.args.function == 'pm':
             if self.args.month:
-                lf.plot_month(self.df, self.dfz, self.args.month,
-                              self.args.kategorie, self.args.yearly_sum, self.args.output)
-            else:
+                # Assuming lf.plot_month will be modified to return a dict for json
+                result_data = lf.plot_month(self.df, self.dfz, self.args.month,
+                                          self.args.kategorie, self.args.yearly_sum, self.args.output)
+            elif self.args.output != 'json':
                 print("Month is required for plot_month.")
 
         elif self.args.function == 'pym':
             if self.args.year_range:
-                lf.plot_yearmonths(self.df, self.dfz, self.args.kategorie,
-                                   self.args.year_range, self.args.yearly_sum, self.args.output)
-            else:
+                # Assuming lf.plot_yearmonths will be modified to return a dict for json
+                result_data = lf.plot_yearmonths(self.df, self.dfz, self.args.kategorie,
+                                               self.args.year_range, self.args.yearly_sum, self.args.output)
+            elif self.args.output != 'json':
                 print("Year range is required for plot_yearmonths.")
 
         elif self.args.function == 'pyd':
             if self.args.year:
-                lf.plot_yeardays(self.df, self.dfz, self.args.kategorie,
-                                 self.args.year, self.args.yearly_sum, self.args.output)
-            else:
+                # Assuming lf.plot_yeardays will be modified to return a dict for json
+                result_data = lf.plot_yeardays(self.df, self.dfz, self.args.kategorie,
+                                             self.args.year, self.args.yearly_sum, self.args.output)
+            elif self.args.output != 'json':
                 print("Year is required for plot_yeardays.")
 
         elif self.args.test:
+            # Test function remains unchanged for now, might need adjustment
+            # if lf functions change significantly
             self.df, self.dfz = init_dataframes('./data/synthload2024.xlsx')
-            # Display the first few rows of each dataframe
             kat = 'H0'
-            jen = 5500    # jahres energie
+            jen = 5500
             tag = '2024-01-01'
             energysum = lf.compute_total_annual_energy(self.df, kat)
             print(kat, get_name_from_id(self.dfz, kat),
                   ': Normierte Jahres Energie', energysum, 'kWh')
-
             yeardaysum = lf.plot_yeardays(self.df, self.dfz,
-                                          kategorie=kat, year_str=2024, yearly_sum=jen)
+                                          kategorie=kat, year_str='2024', yearly_sum=jen, output='plot') # Keep plot for test
             print('Jahres Energie', yeardaysum, 'kWh')
+            pass # End of test block
 
-            pass
+        # Output JSON if requested and data is available
+        if self.args.output == 'json' and result_data is not None:
+            # Ensure pandas Series/DataFrames are converted to basic types
+            def default_serializer(obj):
+                if isinstance(obj, (pd.Series, pd.DataFrame)):
+                    return obj.to_dict(orient='records') # Or other suitable format
+                if isinstance(obj, pd.Timestamp):
+                    return obj.isoformat()
+                if isinstance(obj, np.integer):
+                    return int(obj)
+                if isinstance(obj, np.floating):
+                    return float(obj)
+                if isinstance(obj, np.ndarray):
+                    return obj.tolist()
+                raise TypeError(f"Object of type {obj.__class__.__name__} is not JSON serializable")
 
+            print(json.dumps(result_data, indent=4, default=default_serializer))
 
 if __name__ == "__main__":
     args = EnergyProfileAnalyzer.parse_arguments()
