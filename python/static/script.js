@@ -94,19 +94,35 @@ document.addEventListener("DOMContentLoaded", () => {
           });
       });
 
-      // Create chart if we have monthly data
-      if (selectedFunction === "pym" && data.monthly_values) {
+      // Create chart if we have monthly or daily data
+      if (
+        (selectedFunction === "pym" && data.monthly_values) ||
+        (selectedFunction === "plot_month" && data.daily_values)
+      ) {
         const ctx = document.createElement("canvas");
         chartArea.appendChild(ctx);
+
+        const isMonthly = selectedFunction === "pym";
+        const labels = isMonthly
+          ? data.monthly_values.map((m) => m.month_name)
+          : data.daily_values.map(
+              (d) => d.date.split("-")[2] + " " + d.date.split("-")[1]
+            );
+        const values = isMonthly
+          ? data.monthly_values.map((m) => m.kwh)
+          : data.daily_values.map((d) => d.kwh);
+        const percentages = isMonthly
+          ? data.monthly_values.map((m) => m.percent_of_year)
+          : data.daily_values.map((d) => d.percentage_of_year);
 
         new Chart(ctx, {
           type: "bar",
           data: {
-            labels: data.monthly_values.map((m) => m.month_name),
+            labels: labels,
             datasets: [
               {
                 label: `${data.category_name} (kWh)`,
-                data: data.monthly_values.map((m) => m.kwh),
+                data: values,
                 backgroundColor: "rgba(54, 162, 235, 0.5)",
                 borderColor: "rgba(54, 162, 235, 1)",
                 borderWidth: 1,
@@ -136,7 +152,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 callbacks: {
                   label: (context) => {
                     const month = data.monthly_values[context.dataIndex];
-                    return `${month.kwh} kWh (${month.percent_of_year}% of year)`;
+                    const value = isMonthly
+                      ? data.monthly_values[context.dataIndex]
+                      : data.daily_values[context.dataIndex];
+                    return `${value.kwh} kWh (${
+                      value.percent_of_year || value.percentage_of_year
+                    }% of year)`;
                   },
                 },
               },
@@ -148,18 +169,18 @@ document.addEventListener("DOMContentLoaded", () => {
                     size: 12,
                   },
                   generateLabels: (chart) => {
-                    const maxMonth = data.monthly_values.reduce(
-                      (max, m) => (m.kwh > max.kwh ? m : max),
-                      data.monthly_values[0]
+                    const values = isMonthly
+                      ? data.monthly_values
+                      : data.daily_values;
+                    const maxValue = values.reduce(
+                      (max, v) => (v.kwh > max.kwh ? v : max),
+                      values[0]
                     );
-                    const minMonth = data.monthly_values.reduce(
-                      (min, m) => (m.kwh < min.kwh ? m : min),
-                      data.monthly_values[0]
+                    const minValue = values.reduce(
+                      (min, v) => (v.kwh < min.kwh ? v : min),
+                      values[0]
                     );
-                    const totalKwh = data.monthly_values.reduce(
-                      (sum, m) => sum + m.kwh,
-                      0
-                    );
+                    const totalKwh = values.reduce((sum, v) => sum + v.kwh, 0);
 
                     return [
                       {
@@ -174,16 +195,16 @@ document.addEventListener("DOMContentLoaded", () => {
                       },
                       {
                         text: `Max: ${
-                          maxMonth.month_name
-                        } (${maxMonth.kwh.toFixed(1)} kWh, 100%)`,
+                          isMonthly ? maxValue.month_name : maxValue.date
+                        } (${maxValue.kwh.toFixed(1)} kWh, 100%)`,
                         fillStyle: "rgba(54, 162, 235, 0.5)",
                         hidden: false,
                       },
                       {
                         text: `Min: ${
-                          minMonth.month_name
-                        } (${minMonth.kwh.toFixed(1)} kWh, ${Math.round(
-                          (minMonth.kwh / maxMonth.kwh) * 100
+                          isMonthly ? minValue.month_name : minValue.date
+                        } (${minValue.kwh.toFixed(1)} kWh, ${Math.round(
+                          (minValue.kwh / maxValue.kwh) * 100
                         )}%)`,
                         fillStyle: "rgba(54, 162, 235, 0.2)",
                         hidden: false,

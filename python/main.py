@@ -83,13 +83,11 @@ async def get_plot_month(
 ):
     """API endpoint for monthly energy profile data."""
     try:
-        # Validate date format roughly
-        if len(date) != 7 or date[4] != '-':
-             raise ValueError("Invalid date format")
-        pd.to_datetime(date, format='%Y-%m')
-        month_str = date
+        # Accept both YYYY-MM and YYYY-MM-DD formats
+        date_obj = pd.to_datetime(date)
+        month_str = f"{date_obj.year}-{date_obj.month:02d}"
     except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM.")
+        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM or YYYY-MM-DD.")
 
     try:
         result = lf.plot_month(df, dfz, month_str, kategorie, yearly_sum, output='json')
