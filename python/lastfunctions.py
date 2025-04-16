@@ -8,8 +8,7 @@ import requests
 import zipfile
 import os
 import pandas as pd
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
+
 from pandas.tseries.offsets import YearEnd
 import warnings
 
@@ -163,6 +162,14 @@ def plot_day(df, dfz, date_str, kategorie, yearly_sum=1000, output='text'):
     Returns:
         tuple: (total_energy, total_percentage) for the day
     """
+    try:
+        import matplotlib.pyplot as plt
+        import matplotlib.dates as mdates
+    except ImportError:
+        if output == 'plot':
+            print(
+                "Error: matplotlib is required for plotting. Please install with 'pip install matplotlib'")
+            return None, None
     actual_kwh_series, percentage_series, filtered_df = day_vector(
         df, date_str, kategorie, yearly_sum)
 
@@ -229,6 +236,13 @@ def plot_month(df, dfz, month_str, kategorie, yearly_sum=1000, output='text'):
     Returns:
         tuple: (total_energy, total_percentage) for the month
     """
+    try:
+        import matplotlib.pyplot as plt
+    except ImportError:
+        if output == 'plot':
+            print(
+                "Error: matplotlib is required for plotting. Please install with 'pip install matplotlib'")
+            return None, None
     try:
         period = pd.Period(month_str)
         days_in_month = pd.date_range(
