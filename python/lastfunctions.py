@@ -432,15 +432,15 @@ def plot_month(df, dfz, month_str, kategorie, yearly_sum=1000, output='text'):
             return None # Or raise
 
 
-def plot_yearmonths(df, dfz, kategorie, year=2024, yearly_sum=1000, output='text'):
+def plot_yearmonths(df, dfz, kategorie, year_str, yearly_sum=1000, output='text'):
     """
-    Plot monthly energy distribution for a specific year or return data.
+    Plot yearly energy distribution by month or return data for a specific year and category.
 
     Args:
         df (DataFrame): Main energy data
         dfz (DataFrame): Category metadata
         kategorie (str): Energy category to plot
-        year (int): Year to plot
+        year_str (str): Year to analyze (YYYY format)
         yearly_sum (float): Annual energy sum for scaling (default: 1000)
         output (str): Output format ('text', 'plot', or 'json')
 
@@ -458,60 +458,50 @@ def plot_yearmonths(df, dfz, kategorie, year=2024, yearly_sum=1000, output='text
             return None # Cannot plot
 
     try:
-        # Ensure 'Year' and 'Month' columns exist or create them safely
-        if 'Year' not in df.columns or 'Month' not in df.columns:
-             # Avoid modifying original df if called multiple times
-             df_copy = df.copy()
-             df_copy['ts'] = pd.to_datetime(df_copy['ts'])
-             df_copy['Year'] = df_copy['ts'].dt.year
-             df_copy['Month'] = df_copy['ts'].dt.month
-             df_to_use = df_copy
-        else:
-             df_to_use = df
+        year = int(year_str) # Convert year string to integer for filtering
+        # Filter data for the specified year
+        df_year = df[df['ts'].dt.year == year].copy() # Use .copy() to avoid SettingWithCopyWarning
 
-        # Filter data for the specific year and then group by month
-        monthly_energy = df_to_use[df_to_use['Year'] == year].groupby('Month')[kategorie].sum()
-
-        # Scale the energy values
-        scaling_factor = yearly_sum / 1000
-        monthly_energy_scaled = monthly_energy * scaling_factor
-
-        # Get the Typtext for the kategorie
-        typtext = get_name_from_id(dfz, kategorie)
-        if not typtext:
+        category_name = get_name_from_id(dfz, kategorie)
+        if not category_name:
             if output == 'json':
                 return {"error": f"Category '{kategorie}' not found in metadata"}
             else:
                 print(f"Error: Category '{kategorie}' not found in metadata")
                 return None
 
-        summed_energy = round(monthly_energy_scaled.sum(), 2)
+        # Calculate total annual energy (scaled)
+        total_annual_energy_scaled = compute_total_annual_energy(df, kategorie) * (yearly_sum / 1000)
 
-        # Prepare month names and data for output
-        month_map = {i: name for i, name in enumerate(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'], 1)}
-        monthly_data_list = []
-        for month_num, energy in monthly_energy_scaled.items():
-            monthly_data_list.append({
-                "month_num": month_num,
-                "month_name": month_map.get(month_num, "Unknown"),
-                "kwh": round(energy, 2)
-            })
+        # Group by month and sum the energy
+        scaling_factor = yearly_sum / 1000
+        # Apply scaling factor before summing
+        df_year[kategorie] = df_year[kategorie] * scaling_factor
+        monthly_energy = df_year.groupby(df_year['ts'].dt.month)[kategorie].sum()
 
-        # Sort by month number for consistent output
-        monthly_data_list.sort(key=lambda x: x['month_num'])
+        # Ensure all 12 months are present, filling missing ones with 0
+        monthly_energy = monthly_energy.reindex(range(1, 13), fill_value=0)
+
+        # Calculate total energy for the year from monthly sums
+        total_energy_year = round(monthly_energy.sum(), 2)
+
+        # Calculate monthly percentages
+        monthly_percentages = {} # Store percentages
+        if total_annual_energy_scaled > 0:
+            monthly_percentages = (monthly_energy / total_annual_energy_scaled * 100).round(2)
+        else:
+            monthly_percentages = pd.Series([0.0] * 12, index=range(1, 13))
+
+        # Get month names
+        month_names = [pd.Timestamp(f'{year}-{month}-01').strftime('%b') for month in range(1, 13)]
 
         if output == 'text':
-            print(
-                f"Monthly energy distribution for {year} ({typtext}), Scaled Total: {summed_energy:.2f} kWh (Target: {yearly_sum} kWh)")
-            print("Month    kWh")
-            print("-----    ------")
-            for item in monthly_data_list:
-                print(f"{item['month_name']:<5}    {item['kwh']:.2f}")
-            print(f"\nSum of scaled monthly kWh's: {summed_energy:.2f} kWh")
-            # Optional: Add assertion check for text output as well?
-            # tolerance = 0.01 * yearly_sum
-            # if not (yearly_sum - tolerance <= summed_energy <= yearly_sum + tolerance):
-            #     print(f"Warning: Sum {summed_energy:.2f} deviates by more than 1% from target {yearly_sum:.2f} kWh.")
+            print(f"Yearly energy distribution for {year} ({category_name})")
+            print(f"Total Energy: {total_energy_year} kWh")
+            print("\nMonth      kWh     % of Year")
+            print("--------- ------- ----------")
+            for month_num in range(1, 13):
+                print(f"{month_names[month_num-1]:<9} {monthly_energy[month_num]:<7.2f} {monthly_percentages[month_num]:<10.2f}%")
             return None
 
         elif output == 'plot':
@@ -519,19 +509,25 @@ def plot_yearmonths(df, dfz, kategorie, year=2024, yearly_sum=1000, output='text
                  print("Plotting skipped due to missing matplotlib library or import error.")
                  return None
             try:
-                fig, ax = plt.subplots(figsize=(10, 6)) # Use fig, ax pattern
-                # Use the sorted data for plotting
-                month_names_sorted = [item['month_name'] for item in monthly_data_list]
-                kwh_values_sorted = [item['kwh'] for item in monthly_data_list]
+                fig, ax1 = plt.subplots(figsize=(12, 6))
+                ax2 = ax1.twinx()
 
-                ax.bar(month_names_sorted, kwh_values_sorted, color='skyblue')
+                ax1.set_title(f"Monthly Energy Distribution for {year} - {category_name}\nTotal: {total_energy_year} kWh")
+                ax1.bar(month_names, monthly_energy, alpha=0.6, label='Monthly kWh')
+                ax2.plot(month_names, monthly_percentages, color='r', marker='o', linestyle='-', label='Monthly Percentage (%)')
 
-                ax.set_title(
-                    f"Monthly Energy Distribution for {year} ({typtext})\nScaled Total: {summed_energy:.2f} kWh (Target: {yearly_sum} kWh)")
-                ax.set_xlabel("Month")
-                plt.setp(ax.get_xticklabels(), rotation=45, ha="right") # Use plt.setp
-                ax.set_ylabel("Energy (kWh)")
-                ax.grid(axis='y', linestyle='--', alpha=0.7)
+                ax1.set_xlabel('Month')
+                ax1.set_ylabel('Energy (kWh)', color='b')
+                ax2.set_ylabel('Percentage of Yearly Consumption (%)', color='r')
+                ax1.tick_params(axis='y', labelcolor='b')
+                ax2.tick_params(axis='y', labelcolor='r')
+                ax1.grid(axis='y', linestyle='--')
+
+                # Combine legends
+                lines, labels = ax1.get_legend_handles_labels()
+                lines2, labels2 = ax2.get_legend_handles_labels()
+                ax2.legend(lines + lines2, labels + labels2, loc='upper right')
+
                 fig.tight_layout()
                 plt.show(block=True)
                 return None
@@ -540,36 +536,46 @@ def plot_yearmonths(df, dfz, kategorie, year=2024, yearly_sum=1000, output='text
                  return None
 
         elif output == 'json':
+            monthly_values_json = [
+                {
+                    "month_num": month_num,
+                    "month_name": month_names[month_num-1],
+                    "kwh": round(monthly_energy[month_num], 2),
+                    "percent_of_year": round(monthly_percentages[month_num], 2) # Add percentage here
+                }
+                for month_num in range(1, 13)
+            ]
+
             return {
                 "function": "plot_yearmonths",
                 "parameters": {
-                    "year": year,
+                    "year": year, # Use the integer year here
                     "kategorie": kategorie,
                     "yearly_sum": yearly_sum
                 },
-                "category_name": typtext,
+                "category_name": category_name,
                 "summary": {
-                    "total_energy_kwh": summed_energy
+                    "total_energy_kwh": total_energy_year
+                    # Add total percentage if needed, calculated from total_energy_year / total_annual_energy_scaled
                 },
-                "monthly_values": monthly_data_list
+                "monthly_values": monthly_values_json
             }
-        else:
-            print(f"Error: Invalid output format '{output}'")
-            return None
 
-    except Exception as e:
+    except ValueError:
+        # Handle case where year_str is not a valid integer
+        error_msg = f"Invalid year format provided: '{year_str}'. Please use YYYY format."
         if output == 'json':
-            return {"error": f"Failed to process year {year} months: {str(e)}"}
+            return {"error": error_msg}
         else:
-            print(f"Error: Failed to process year {year} months: {str(e)}")
+            print(f"Error: {error_msg}")
             return None
-
-    # Assertion should ideally be outside the try-except or handled carefully
-    # If placed here, it might not run if an exception occurred earlier.
-    # Consider placing it within the 'text' and 'json' blocks if needed.
-    # tolerance = 0.01 * yearly_sum
-    # assert yearly_sum - tolerance <= summed_energy <= yearly_sum + tolerance, \
-    #     f"Sum of monthly kWh's ({summed_energy:.2f}) does not fall within the ±1% tolerance of the provided yearly sum ({yearly_sum:.2f})."
+    except Exception as e:
+        error_msg = f"An error occurred during yearly analysis: {str(e)}"
+        if output == 'json':
+            return {"error": error_msg}
+        else:
+            print(f"Error: {error_msg}")
+            return None
 
 
 def plot_yeardays(df, dfz, kategorie, year_str, yearly_sum=1000, output='text'):

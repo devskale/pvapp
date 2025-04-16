@@ -31,14 +31,10 @@ class EnergyProfileAnalyzer:
                             help='Date in YYYY-MM-DD, YYYY-MM, or YYYY format. Required for: de, pd (YYYY-MM-DD); pm (YYYY-MM); pyd (YYYY).')
         parser.add_argument('-k', '--kategorie', type=str, required=False, default='H0',
                             help='Category. Required for all functions.')
-        parser.add_argument('--no-plot', action='store_true',
-                            help='Disable matplotlib output for plotting functions. (Deprecated - use -o parameter instead)')
         parser.add_argument('-o', '--output', type=str, default='text',
                             choices=['text', 'plot', 'json'], help='Output format: text, plot, or json')
         parser.add_argument('-ys', '--yearly_sum', type=int, default=1000,
                             help='Yearly sum. Optional for all functions.')
-        parser.add_argument('-yr', '--year_range', type=int,
-                            default=2024, help='Year range. Required for: pym.')
 
         args = parser.parse_args()
         return args
@@ -109,12 +105,17 @@ class EnergyProfileAnalyzer:
                 print("Date is required for plot_month.")
 
         elif self.args.function == 'pym':
-            if self.args.year_range:
-                # Assuming lf.plot_yearmonths will be modified to return a dict for json
-                result_data = lf.plot_yearmonths(self.df, self.dfz, self.args.kategorie,
-                                               self.args.year_range, self.args.yearly_sum, self.args.output)
+            if self.args.date:
+                # Extract YYYY from date
+                year_str = self.args.date[:4] if len(self.args.date) >= 4 else None
+                if year_str:
+                    # Assuming lf.plot_yearmonths will be modified to return a dict for json
+                    result_data = lf.plot_yearmonths(self.df, self.dfz, self.args.kategorie,
+                                                   year_str, self.args.yearly_sum, self.args.output)
+                elif self.args.output != 'json':
+                    print("Valid date in YYYY format is required for plot_yearmonths.")
             elif self.args.output != 'json':
-                print("Year range is required for plot_yearmonths.")
+                print("Date is required for plot_yearmonths.")
 
         elif self.args.function == 'pyd':
             if self.args.date:
