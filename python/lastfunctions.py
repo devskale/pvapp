@@ -8,6 +8,7 @@ import requests
 import zipfile
 import os
 import pandas as pd
+import matplotlib.pyplot as plt
 
 from pandas.tseries.offsets import YearEnd
 import warnings
@@ -21,7 +22,7 @@ ZIP_FILE = f'{DATA_DIR}/synthload2024.zip'
 if 'plt' in globals():
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        plt.show(block=False)
+        plt.show(block=True)
 
 
 def init_environment():
@@ -363,7 +364,7 @@ def plot_yearmonths(df, dfz, kategorie, year=2024, yearly_sum=1000, output='text
         plt.ylabel("Energy (kWh)")
         plt.grid(axis='y', linestyle='--', alpha=0.7)
         plt.tight_layout()
-        plt.show(block=False)
+        plt.show(block=True)
         return summed_energy
 
     tolerance = 0.01 * yearly_sum
