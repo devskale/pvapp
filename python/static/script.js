@@ -115,6 +115,22 @@ document.addEventListener("DOMContentLoaded", () => {
           options: {
             responsive: true,
             plugins: {
+              title: {
+                display: true,
+                text: `${
+                  kategorieSelect.options[
+                    kategorieSelect.selectedIndex
+                  ].text.split(" (")[0]
+                } - ${data.category_name}`,
+                font: {
+                  size: 16,
+                  weight: "bold",
+                },
+                padding: {
+                  top: 10,
+                  bottom: 20,
+                },
+              },
               tooltip: {
                 callbacks: {
                   label: (context) => {
@@ -124,7 +140,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 },
               },
               legend: {
+                position: "bottom",
                 labels: {
+                  padding: 20,
                   generateLabels: (chart) => {
                     const maxMonth = data.monthly_values.reduce(
                       (max, m) => (m.kwh > max.kwh ? m : max),
