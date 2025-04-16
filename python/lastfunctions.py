@@ -8,21 +8,11 @@ import requests
 import zipfile
 import os
 import pandas as pd
-import matplotlib.pyplot as plt
-
-from pandas.tseries.offsets import YearEnd
-import warnings
 
 # Global configuration
 DATA_URL = 'https://www.apcs.at/apcs/clearing/lastprofile/synthload2024.zip'
 DATA_DIR = './data'
 ZIP_FILE = f'{DATA_DIR}/synthload2024.zip'
-
-# Suppress matplotlib warnings
-if 'plt' in globals():
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        plt.show(block=True)
 
 
 def init_environment():
@@ -176,7 +166,8 @@ def plot_day(df, dfz, date_str, kategorie, yearly_sum=1000, output='text'):
         dict or None: Data dictionary if output is 'json', None otherwise.
                       Prints text or shows plot for other outputs.
     """
-    # Import necessary libraries only if plotting
+    plt = None
+    mdates = None
     if output == 'plot':
         try:
             import matplotlib.pyplot as plt
@@ -184,9 +175,7 @@ def plot_day(df, dfz, date_str, kategorie, yearly_sum=1000, output='text'):
         except ImportError:
             print(
                 "Error: matplotlib is required for plotting. Please install with 'pip install matplotlib'")
-            # For JSON output, we don't strictly need matplotlib, so proceed if possible
-            # If data calculation fails later, it will be caught.
-            pass # Continue if not plotting
+            return None # Cannot plot
 
     actual_kwh_series, percentage_series, filtered_df = day_vector(
         df, date_str, kategorie, yearly_sum)
@@ -237,26 +226,30 @@ def plot_day(df, dfz, date_str, kategorie, yearly_sum=1000, output='text'):
 
     elif output == 'plot':
         # Visualization (ensure matplotlib was imported)
+        if plt is None or mdates is None:
+             # This case should be handled by the import check already, but as a safeguard:
+             print("Plotting skipped due to missing matplotlib library or import error.")
+             return None
         try:
-            plt.figure(figsize=(10, 6)) # Adjusted size for better readability
+            fig, ax = plt.subplots(figsize=(10, 6)) # Use fig, ax pattern
             # Plotting power (kW) which is energy per 15min * 4
-            plt.plot(filtered_df['ts'], actual_kwh_series * 4, label=f"Power (kW)")
-            plt.title(f"Energy Distribution for {date_str} ({typtext})\nTotal: {total_energy} kWh ({total_percentage}% of Year)")
-            plt.xlabel("Time")
-            plt.ylabel("Power (kW)")
+            ax.plot(filtered_df['ts'], actual_kwh_series * 4, label=f"Power (kW)")
+            ax.set_title(f"Energy Distribution for {date_str} ({typtext})\nTotal: {total_energy} kWh ({total_percentage}% of Year)")
+            ax.set_xlabel("Time")
+            ax.set_ylabel("Power (kW)")
 
             # Format x-axis
-            plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
-            plt.gca().xaxis.set_major_locator(mdates.HourLocator(interval=3)) # Adjust interval if needed
-            plt.xticks(rotation=45)
+            ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+            ax.xaxis.set_major_locator(mdates.HourLocator(interval=3))
+            plt.setp(ax.get_xticklabels(), rotation=45, ha="right") # Use plt.setp
 
-            plt.legend()
-            plt.grid(True)
-            plt.tight_layout()
+            ax.legend()
+            ax.grid(True)
+            fig.tight_layout()
             plt.show(block=True)
             return None # Indicate successful plot output
-        except NameError: # Handle case where plt or mdates failed import
-             print("Plotting failed due to missing matplotlib library.")
+        except Exception as e: # Catch potential plotting errors
+             print(f"Plotting failed: {e}")
              return None
 
     elif output == 'json':
@@ -307,14 +300,14 @@ def plot_month(df, dfz, month_str, kategorie, yearly_sum=1000, output='text'):
         dict or None: Data dictionary if output is 'json', None otherwise.
                       Prints text or shows plot for other outputs.
     """
+    plt = None
     if output == 'plot':
         try:
             import matplotlib.pyplot as plt
         except ImportError:
             print(
                 "Error: matplotlib is required for plotting. Please install with 'pip install matplotlib'")
-            # Allow proceeding if output is not 'plot'
-            pass
+            return None # Cannot plot
 
     try:
         period = pd.Period(month_str)
@@ -364,6 +357,9 @@ def plot_month(df, dfz, month_str, kategorie, yearly_sum=1000, output='text'):
             return None
 
         elif output == 'plot':
+            if plt is None:
+                 print("Plotting skipped due to missing matplotlib library or import error.")
+                 return None
             try:
                 # Create plot
                 fig, ax1 = plt.subplots(figsize=(12, 6))
@@ -386,12 +382,17 @@ def plot_month(df, dfz, month_str, kategorie, yearly_sum=1000, output='text'):
                                     for day in days_in_month], rotation=45, ha="right")
                 ax1.xaxis.set_major_locator(plt.MaxNLocator(integer=True)) # Ensure integer ticks
 
-                fig.legend(loc="upper right", bbox_to_anchor=(1,1), bbox_transform=ax1.transAxes)
+                # Combine legends
+                lines, labels = ax1.get_legend_handles_labels()
+                lines2, labels2 = ax2.get_legend_handles_labels()
+                ax2.legend(lines + lines2, labels + labels2, loc='upper right') # Use combined legend
+
+                #fig.legend(loc="upper right", bbox_to_anchor=(1,1), bbox_transform=ax1.transAxes) # Remove separate legend call
                 fig.tight_layout()
                 plt.show(block=True)
                 return None
-            except NameError:
-                 print("Plotting failed due to missing matplotlib library.")
+            except Exception as e:
+                 print(f"Plotting failed: {e}")
                  return None
 
         elif output == 'json':
@@ -447,13 +448,14 @@ def plot_yearmonths(df, dfz, kategorie, year=2024, yearly_sum=1000, output='text
         dict or None: Data dictionary if output is 'json', None otherwise.
                       Prints text or shows plot for other outputs.
     """
+    plt = None
     if output == 'plot':
         try:
             import matplotlib.pyplot as plt
         except ImportError:
             print(
                 "Error: matplotlib is required for plotting. Please install with 'pip install matplotlib'")
-            pass # Allow proceeding if not plotting
+            return None # Cannot plot
 
     try:
         # Ensure 'Year' and 'Month' columns exist or create them safely
@@ -513,25 +515,28 @@ def plot_yearmonths(df, dfz, kategorie, year=2024, yearly_sum=1000, output='text
             return None
 
         elif output == 'plot':
+            if plt is None:
+                 print("Plotting skipped due to missing matplotlib library or import error.")
+                 return None
             try:
-                plt.figure(figsize=(10, 6))
+                fig, ax = plt.subplots(figsize=(10, 6)) # Use fig, ax pattern
                 # Use the sorted data for plotting
                 month_names_sorted = [item['month_name'] for item in monthly_data_list]
                 kwh_values_sorted = [item['kwh'] for item in monthly_data_list]
 
-                plt.bar(month_names_sorted, kwh_values_sorted, color='skyblue')
+                ax.bar(month_names_sorted, kwh_values_sorted, color='skyblue')
 
-                plt.title(
+                ax.set_title(
                     f"Monthly Energy Distribution for {year} ({typtext})\nScaled Total: {summed_energy:.2f} kWh (Target: {yearly_sum} kWh)")
-                plt.xlabel("Month")
-                plt.xticks(rotation=45)
-                plt.ylabel("Energy (kWh)")
-                plt.grid(axis='y', linestyle='--', alpha=0.7)
-                plt.tight_layout()
+                ax.set_xlabel("Month")
+                plt.setp(ax.get_xticklabels(), rotation=45, ha="right") # Use plt.setp
+                ax.set_ylabel("Energy (kWh)")
+                ax.grid(axis='y', linestyle='--', alpha=0.7)
+                fig.tight_layout()
                 plt.show(block=True)
                 return None
-            except NameError:
-                 print("Plotting failed due to missing matplotlib library.")
+            except Exception as e:
+                 print(f"Plotting failed: {e}")
                  return None
 
         elif output == 'json':
@@ -583,15 +588,19 @@ def plot_yeardays(df, dfz, kategorie, year_str, yearly_sum=1000, output='text'):
         dict or None: Data dictionary if output is 'json', None otherwise.
                       Prints text or shows plot for other outputs.
     """
+    plt = None
+    mdates = None
+    YearEnd = None # Initialize YearEnd as None
     if output == 'plot':
         try:
             import matplotlib.pyplot as plt
-            from pandas.tseries.offsets import YearEnd # Ensure YearEnd is available
-            import matplotlib.dates as mdates # Ensure mdates is available
+            import matplotlib.dates as mdates
+            # Import YearEnd specifically here as it's from pandas
+            from pandas.tseries.offsets import YearEnd
         except ImportError:
             print(
-                "Error: matplotlib is required for plotting. Please install with 'pip install matplotlib'")
-            pass # Allow proceeding if not plotting
+                "Error: matplotlib and/or pandas is required for plotting. Please install with 'pip install matplotlib pandas'")
+            return None # Cannot plot
 
     try:
         year = int(year_str) # Convert year_str to int for date range
@@ -650,14 +659,19 @@ def plot_yeardays(df, dfz, kategorie, year_str, yearly_sum=1000, output='text'):
             return None
 
         elif output == 'plot':
+            # Ensure matplotlib and pandas were imported successfully
+            if plt is None or mdates is None or YearEnd is None:
+                print("Plotting skipped due to missing libraries or import error.")
+                return None
+
             try:
-                # Data for plotting
+                # Create plot
                 fig, ax1 = plt.subplots(figsize=(15, 7))
                 ax2 = ax1.twinx()
 
-                ax1.set_title(f"Daily Energy Distribution for {year_str} - {category_name}\nScaled Total: {total_yearly_kwh:.2f} kWh (Target: {yearly_sum} kWh)")
-                ax1.plot(days_in_year, kwh_series, alpha=0.7, label='Daily kWh', color='blue')
-                ax2.plot(days_in_year, percentage_series, alpha=0.7, label='Daily Percentage of Year (%)', color='red')
+                ax1.set_title(f"Daily Energy Distribution for {year} - {category_name}\nTotal: {total_yearly_kwh:.2f} kWh ({total_yearly_percentage:.2f}% of Year)")
+                ax1.plot(days_in_year, kwh_series, label='Daily kWh', color='blue', alpha=0.7)
+                ax2.plot(days_in_year, percentage_series, label='Daily Percentage (%)', color='red', linestyle='--', alpha=0.7)
 
                 ax1.set_xlabel('Date')
                 ax1.set_ylabel('Energy (kWh)', color='blue')
@@ -665,27 +679,27 @@ def plot_yeardays(df, dfz, kategorie, year_str, yearly_sum=1000, output='text'):
                 ax1.tick_params(axis='y', labelcolor='blue')
                 ax2.tick_params(axis='y', labelcolor='red')
 
-                # Formatting the x-axis to show months
+                # Format x-axis to show month abbreviations
                 ax1.xaxis.set_major_locator(mdates.MonthLocator())
-                ax1.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
-                plt.xticks(rotation=45, ha="right")
+                ax1.xaxis.set_major_formatter(mdates.DateFormatter('%b')) # Use %b for month abbr
+                ax1.xaxis.set_minor_locator(mdates.DayLocator(interval=7)) # Optional: minor ticks for weeks
+                plt.setp(ax1.get_xticklabels(), rotation=45, ha="right")
 
-                # Set Y limits dynamically
-                max_kwh = max(kwh_series) if kwh_series else 1
-                max_percent = max(percentage_series) if percentage_series else 1
-                upper_kwh = ((max_kwh // 5) + 1) * 5 if max_kwh > 0 else 5
-                upper_percent = ((max_percent // 0.1) + 1) * 0.1 if max_percent > 0 else 0.5 # Adjust scale for percentage
-                ax1.set_ylim(bottom=0, top=max(upper_kwh, 1)) # Ensure limit is at least 1
-                ax2.set_ylim(bottom=0, top=max(upper_percent, 0.1)) # Ensure limit is at least 0.1
+                # Set x-axis limits to the year range
+                ax1.set_xlim(start_date, end_date)
 
-                fig.legend(loc="upper right", bbox_to_anchor=(1,1), bbox_transform=ax1.transAxes)
+                # Combine legends
+                lines, labels = ax1.get_legend_handles_labels()
+                lines2, labels2 = ax2.get_legend_handles_labels()
+                ax2.legend(lines + lines2, labels + labels2, loc='upper right')
+
+                ax1.grid(True, which='major', axis='x', linestyle='--') # Grid lines for months
                 fig.tight_layout()
-                plt.grid(True)
                 plt.show(block=True)
                 return None
-            except NameError:
-                 print("Plotting failed due to missing matplotlib library.")
-                 return None
+            except Exception as e:
+                print(f"Plotting failed: {e}")
+                return None
 
         elif output == 'json':
             # Prepare daily data for JSON

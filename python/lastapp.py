@@ -28,11 +28,7 @@ class EnergyProfileAnalyzer:
                             help='Function to execute. Options: de (day_energy), pd (plot_day), pm (plot_month), pym (plot_yearmonths), pyd (plot_yeardays)')
 
         parser.add_argument('-d', '--date', type=str,
-                            help='Date in YYYY-MM-DD format. Required for: de, pd.')
-        parser.add_argument('-m', '--month', type=str,
-                            help='Month in YYYY-MM format. Required for: pm.')
-        parser.add_argument('-y', '--year', type=str,
-                            help='Year in YYYY format. Required for: pyd.')
+                            help='Date in YYYY-MM-DD, YYYY-MM, or YYYY format. Required for: de, pd (YYYY-MM-DD); pm (YYYY-MM); pyd (YYYY).')
         parser.add_argument('-k', '--kategorie', type=str, required=False, default='H0',
                             help='Category. Required for all functions.')
         parser.add_argument('--no-plot', action='store_true',
@@ -100,12 +96,17 @@ class EnergyProfileAnalyzer:
                 print("Date is required for plot_day.")
 
         elif self.args.function == 'pm':
-            if self.args.month:
+            if self.args.date:
                 # Assuming lf.plot_month will be modified to return a dict for json
-                result_data = lf.plot_month(self.df, self.dfz, self.args.month,
-                                          self.args.kategorie, self.args.yearly_sum, self.args.output)
+                # Extract YYYY-MM from date
+                month_str = self.args.date[:7] if len(self.args.date) >= 7 else None
+                if month_str:
+                    result_data = lf.plot_month(self.df, self.dfz, month_str,
+                                              self.args.kategorie, self.args.yearly_sum, self.args.output)
+                elif self.args.output != 'json':
+                    print("Valid date in YYYY-MM format is required for plot_month.")
             elif self.args.output != 'json':
-                print("Month is required for plot_month.")
+                print("Date is required for plot_month.")
 
         elif self.args.function == 'pym':
             if self.args.year_range:
@@ -116,12 +117,17 @@ class EnergyProfileAnalyzer:
                 print("Year range is required for plot_yearmonths.")
 
         elif self.args.function == 'pyd':
-            if self.args.year:
+            if self.args.date:
                 # Assuming lf.plot_yeardays will be modified to return a dict for json
-                result_data = lf.plot_yeardays(self.df, self.dfz, self.args.kategorie,
-                                             self.args.year, self.args.yearly_sum, self.args.output)
+                # Extract YYYY from date
+                year_str = self.args.date[:4] if len(self.args.date) >= 4 else None
+                if year_str:
+                    result_data = lf.plot_yeardays(self.df, self.dfz, self.args.kategorie,
+                                                 year_str, self.args.yearly_sum, self.args.output)
+                elif self.args.output != 'json':
+                    print("Valid date in YYYY format is required for plot_yeardays.")
             elif self.args.output != 'json':
-                print("Year is required for plot_yeardays.")
+                print("Date is required for plot_yeardays.")
 
         elif self.args.test:
             # Test function remains unchanged for now, might need adjustment
@@ -134,7 +140,7 @@ class EnergyProfileAnalyzer:
             print(kat, get_name_from_id(self.dfz, kat),
                   ': Normierte Jahres Energie', energysum, 'kWh')
             yeardaysum = lf.plot_yeardays(self.df, self.dfz,
-                                          kategorie=kat, year_str='2024', yearly_sum=jen, output='plot') # Keep plot for test
+                                          kategorie=kat, year_str='2024', yearly_sum=jen, output='plot') # Keep plot for test, uses year_str directly
             print('Jahres Energie', yeardaysum, 'kWh')
             pass # End of test block
 
