@@ -10,9 +10,9 @@ import os
 import pandas as pd
 
 # Global configuration
-DATA_URL = 'https://www.apcs.at/apcs/clearing/lastprofile/synthload2025.zip'
+DATA_URL = 'https://www.apcs.at/apcs/clearing/lastprofile/synthload2024.zip'
 DATA_DIR = './data'
-ZIP_FILE = f'{DATA_DIR}/synthload2025.zip'
+ZIP_FILE = f'{DATA_DIR}/synthload2024.zip'
 
 
 def init_environment():

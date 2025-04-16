@@ -9,8 +9,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Set default values
   const today = new Date();
-  dateInput.value = `2025-06-29`;
-  yearlySumInput.value = "5500";
+  dateInput.value = `2024-06-29`;
+  yearlySumInput.value = "8500";
 
   // --- Load Categories ---
   async function loadCategories() {
@@ -377,21 +377,58 @@ document.addEventListener("DOMContentLoaded", () => {
                 },
               },
               x: {
-                // For year days, don't show all labels as it would be too crowded
+                // For year days and hourly data, don't show all labels as it would be too crowded
                 ticks: {
-                  autoSkip: isYearDays,
-                  maxTicksLimit: isYearDays ? 12 : undefined, // Show roughly one label per month for year days
-                  maxRotation: isYearDays ? 0 : 0, // Don't rotate labels for year days
+                  autoSkip: isYearDays || isHourly,
+                  maxTicksLimit: isYearDays ? 24 : isHourly ? 4 : undefined, // Increase to 24 to show all months
+                  maxRotation: isYearDays ? 0 : 0, // Don't rotate labels
                   callback: function (value, index, values) {
-                    // For year days, only show the 1st of each month
+                    // For year days, format month labels better
                     if (isYearDays) {
                       const label = this.getLabelForValue(value);
-                      // If the label ends with "-01", it's the first of a month
-                      if (label.endsWith("-01")) {
-                        return label;
+                      if (!label) return "";
+
+                      const parts = label.split("-");
+                      if (parts.length !== 2) return label;
+
+                      // Show labels for the 1st and 15th of each month
+                      // to ensure all months are displayed
+                      if (parts[1] === "01" || parts[1] === "15") {
+                        // Convert month number to name
+                        const monthNames = [
+                          "Jan",
+                          "Feb",
+                          "Mar",
+                          "Apr",
+                          "May",
+                          "Jun",
+                          "Jul",
+                          "Aug",
+                          "Sep",
+                          "Oct",
+                          "Nov",
+                          "Dec",
+                        ];
+                        const monthIndex = parseInt(parts[0], 10) - 1;
+                        if (monthIndex >= 0 && monthIndex < 12) {
+                          return (
+                            monthNames[monthIndex] +
+                            (parts[1] === "15" ? " 15" : "")
+                          );
+                        }
                       }
                       return ""; // Hide other labels
                     }
+
+                    // For hourly data, show only 4 labels (0:00, 6:00, 12:00, 18:00)
+                    if (isHourly) {
+                      const hour = parseInt(this.getLabelForValue(value));
+                      if (hour % 6 === 0) {
+                        return `${hour}:00`;
+                      }
+                      return ""; // Hide other hour labels
+                    }
+
                     return this.getLabelForValue(value);
                   },
                 },

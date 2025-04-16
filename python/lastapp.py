@@ -65,7 +65,7 @@ class EnergyProfileAnalyzer:
                 print("DataFrame dfz loaded.")
                 # print(self.dfz.head())
         else:
-            self.df, self.dfz = init_dataframes('./data/synthload2025.xlsx')
+            self.df, self.dfz = init_dataframes('./data/synthload2024.xlsx')
 
         result_data = None
 
@@ -136,16 +136,16 @@ class EnergyProfileAnalyzer:
         elif self.args.test:
             # Test function remains unchanged for now, might need adjustment
             # if lf functions change significantly
-            self.df, self.dfz = init_dataframes('./data/synthload2025.xlsx')
+            self.df, self.dfz = init_dataframes('./data/synthload2024.xlsx')
             kat = 'H0'
             jen = 5500
-            tag = '2025-01-01'
+            tag = '2024-01-01'
             energysum = lf.compute_total_annual_energy(self.df, kat)
             print(kat, get_name_from_id(self.dfz, kat),
                   ': Normierte Jahres Energie', energysum, 'kWh')
             yeardaysum = lf.plot_yeardays(self.df, self.dfz,
                                           # Keep plot for test, uses year_str directly
-                                          kategorie=kat, year_str='2025', yearly_sum=jen, output='plot')
+                                          kategorie=kat, year_str='2024', yearly_sum=jen, output='plot')
             print('Jahres Energie', yeardaysum, 'kWh')
             pass  # End of test block
 

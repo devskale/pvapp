@@ -12,7 +12,7 @@ app = FastAPI()
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR.parent / 'data'
 STATIC_DIR = BASE_DIR / 'static'
-EXCEL_FILE_PATH = DATA_DIR / 'synthload2025.xlsx'
+EXCEL_FILE_PATH = DATA_DIR / 'synthload2024.xlsx'
 CATEGORIES_FILE_PATH = DATA_DIR / 'Kategorien.csv'
 
 # --- Data Loading ---
