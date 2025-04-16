@@ -19,14 +19,36 @@ body {
   line-height: 1.6;
 }
 
+/* Add header styling with logo */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 2em;
+  flex-wrap: wrap;
+  gap: 1.5em;
+  position: relative;
+}
+
+.logo {
+  max-height: 40px;
+  width: auto;
+  transition: var(--transition);
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+.logo:hover {
+  transform: scale(1.05);
+}
+
 h1 {
   color: var(--primary-dark);
   text-align: center;
-  margin-bottom: 1.5em;
   font-weight: 600;
-  font-size: 2.2rem;
+  font-size: 2rem;
   position: relative;
   padding-bottom: 0.5em;
+  margin: 0;
 }
 
 h1::after {
@@ -101,11 +123,45 @@ h1::after {
   border: 1px solid #ddd;
   border-radius: 6px;
   width: 100%;
-  font-size: 1rem;
+  font-size: 0.95rem; /* Slightly smaller font size */
   transition: var(--transition);
   background-color: #f9f9f9;
   height: 42px; /* Fixed height for consistency */
   box-sizing: border-box;
+  text-overflow: ellipsis; /* Add ellipsis for overflowing text */
+  white-space: nowrap; /* Prevent text from wrapping */
+  overflow: hidden; /* Hide overflow */
+}
+
+/* Fix dropdown option text display */
+.controls select option {
+  padding: 8px;
+  white-space: normal; /* Allow wrapping in dropdown options */
+  min-height: 30px; /* Ensure options have enough height */
+  font-size: 0.95rem; /* Match the select font size */
+  line-height: 1.4; /* Better line height for readability */
+}
+
+/* Widen select dropdown display for function selector */
+#function-select {
+  min-width: 160px; /* Increased width to fit longer options */
+}
+
+/* Increase width for category selector to prevent cutoff */
+#kategorie-select {
+  min-width: 200px; /* Wider to accommodate longer category names */
+}
+
+/* Additional styling for dropdowns */
+select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='6'><path d='M0 0 L6 6 L12 0' fill='none' stroke='%23666' stroke-width='1.5'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 12px;
+  padding-right: 30px; /* Make room for the dropdown arrow */
 }
 
 .controls select:focus,
@@ -293,6 +349,19 @@ h1::after {
 
   .controls button {
     width: 100%;
+  }
+
+  .header {
+    flex-direction: column;
+    gap: 0.8em;
+  }
+
+  .logo {
+    max-height: 50px;
+  }
+
+  h1 {
+    font-size: 1.8rem;
   }
 }
 

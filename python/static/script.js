@@ -9,7 +9,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Set default values
   const today = new Date();
-  dateInput.value = `2024-05-03`;
+  dateInput.value = `2025-06-29`;
   yearlySumInput.value = "5500";
 
   // --- Load Categories ---
@@ -50,10 +50,19 @@ document.addEventListener("DOMContentLoaded", () => {
       resultsArea.textContent = "Please enter a date.";
       return;
     }
-    // Add more specific date format validation based on selected function if needed
+
+    // Format date based on function
+    let formattedDate = date;
+    if (selectedFunction === "pyd" || selectedFunction === "pym") {
+      // For year-based functions, just extract the year part
+      const yearMatch = date.match(/^\d{4}/);
+      if (yearMatch) {
+        formattedDate = yearMatch[0];
+      }
+    }
 
     const apiUrl = `/api/${selectedFunction}?date=${encodeURIComponent(
-      date
+      formattedDate
     )}&kategorie=${encodeURIComponent(
       kategorie
     )}&yearly_sum=${encodeURIComponent(yearlySum)}`;
@@ -164,18 +173,19 @@ document.addEventListener("DOMContentLoaded", () => {
           data.category_name ||
           "";
 
-        // Format date based on the function
-        let formattedDate;
+        // Format date based on the function for display
+        let displayDate;
         if (isMonthly || isYearDays) {
-          formattedDate = dateInput.value.split("-")[0]; // Year only
+          // Extract just the year for year-based functions
+          displayDate = formattedDate;
         } else if (isDaily) {
           const dateComponents = date.split("-");
-          formattedDate =
+          displayDate =
             dateComponents.length >= 2
               ? `${dateComponents[0]}-${dateComponents[1]}`
               : dateComponents[0];
         } else if (isHourly) {
-          formattedDate = date; // Full date for hourly view
+          displayDate = date; // Full date for hourly view
         }
 
         // For Year Days, set a specific chart type to handle the large number of data points
@@ -205,7 +215,7 @@ document.addEventListener("DOMContentLoaded", () => {
             plugins: {
               title: {
                 display: true,
-                text: `${shortName} - ${longName} ${formattedDate}`,
+                text: `${shortName} - ${longName} ${displayDate}`,
                 font: {
                   size: 16,
                   weight: "bold",
@@ -266,7 +276,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
                     if (isMonthly) {
                       values = data.monthly_values;
-                      dateInfo = dateInput.value.split("-")[0];
+                      dateInfo = formattedDate;
                     } else if (isDaily) {
                       values = data.daily_values;
                       dateInfo = date;
@@ -275,7 +285,7 @@ document.addEventListener("DOMContentLoaded", () => {
                       dateInfo = date;
                     } else if (isYearDays) {
                       values = data.daily_values;
-                      dateInfo = dateInput.value.split("-")[0];
+                      dateInfo = formattedDate;
                     }
 
                     const maxValue = values.reduce(
@@ -416,4 +426,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // --- Initial Load ---
   loadCategories();
+
+  // Update function display when page loads
+  updateFunctionDisplay();
+
+  // Update function display when function changes
+  functionSelect.addEventListener("change", () => {
+    updateFunctionDisplay();
+  });
 });
+
+// Helper function to update function field text display
+function updateFunctionDisplay() {
+  const select = document.getElementById("function-select");
+  const selectedOption = select.options[select.selectedIndex];
+
+  // Set title attribute to show full text on hover
+  select.title = selectedOption.textContent;
+}

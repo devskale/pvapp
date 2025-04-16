@@ -59,13 +59,13 @@ class EnergyProfileAnalyzer:
 
         if self.args.data_file:
             self.df, self.dfz = init_dataframes(self.args.data_file)
-            if self.args.output != 'json': # Avoid printing dataframes in json mode
+            if self.args.output != 'json':  # Avoid printing dataframes in json mode
                 print("DataFrame df loaded.")
                 # print(self.df.head())
                 print("DataFrame dfz loaded.")
                 # print(self.dfz.head())
         else:
-            self.df, self.dfz = init_dataframes('./data/synthload2024.xlsx')
+            self.df, self.dfz = init_dataframes('./data/synthload2025.xlsx')
 
         result_data = None
 
@@ -75,7 +75,7 @@ class EnergyProfileAnalyzer:
                 result_data = lf.day_energy(
                     self.df, self.args.date, self.args.kategorie, self.args.yearly_sum)
                 if self.args.output != 'json':
-                    daily_kwh, daily_percentage = result_data # Unpack if not json
+                    daily_kwh, daily_percentage = result_data  # Unpack if not json
                     print(
                         f"Daily energy consumption for {self.args.date}: {daily_kwh} kWh.")
                     print(
@@ -87,7 +87,7 @@ class EnergyProfileAnalyzer:
             if self.args.date:
                 # Assuming lf.plot_day will be modified to return a dict for json
                 result_data = lf.plot_day(self.df, self.dfz, self.args.date,
-                                        self.args.kategorie, self.args.yearly_sum, self.args.output)
+                                          self.args.kategorie, self.args.yearly_sum, self.args.output)
             elif self.args.output != 'json':
                 print("Date is required for plot_day.")
 
@@ -95,10 +95,11 @@ class EnergyProfileAnalyzer:
             if self.args.date:
                 # Assuming lf.plot_month will be modified to return a dict for json
                 # Extract YYYY-MM from date
-                month_str = self.args.date[:7] if len(self.args.date) >= 7 else None
+                month_str = self.args.date[:7] if len(
+                    self.args.date) >= 7 else None
                 if month_str:
                     result_data = lf.plot_month(self.df, self.dfz, month_str,
-                                              self.args.kategorie, self.args.yearly_sum, self.args.output)
+                                                self.args.kategorie, self.args.yearly_sum, self.args.output)
                 elif self.args.output != 'json':
                     print("Valid date in YYYY-MM format is required for plot_month.")
             elif self.args.output != 'json':
@@ -107,11 +108,12 @@ class EnergyProfileAnalyzer:
         elif self.args.function == 'pym':
             if self.args.date:
                 # Extract YYYY from date
-                year_str = self.args.date[:4] if len(self.args.date) >= 4 else None
+                year_str = self.args.date[:4] if len(
+                    self.args.date) >= 4 else None
                 if year_str:
                     # Assuming lf.plot_yearmonths will be modified to return a dict for json
                     result_data = lf.plot_yearmonths(self.df, self.dfz, self.args.kategorie,
-                                                   year_str, self.args.yearly_sum, self.args.output)
+                                                     year_str, self.args.yearly_sum, self.args.output)
                 elif self.args.output != 'json':
                     print("Valid date in YYYY format is required for plot_yearmonths.")
             elif self.args.output != 'json':
@@ -121,10 +123,11 @@ class EnergyProfileAnalyzer:
             if self.args.date:
                 # Assuming lf.plot_yeardays will be modified to return a dict for json
                 # Extract YYYY from date
-                year_str = self.args.date[:4] if len(self.args.date) >= 4 else None
+                year_str = self.args.date[:4] if len(
+                    self.args.date) >= 4 else None
                 if year_str:
                     result_data = lf.plot_yeardays(self.df, self.dfz, self.args.kategorie,
-                                                 year_str, self.args.yearly_sum, self.args.output)
+                                                   year_str, self.args.yearly_sum, self.args.output)
                 elif self.args.output != 'json':
                     print("Valid date in YYYY format is required for plot_yeardays.")
             elif self.args.output != 'json':
@@ -133,24 +136,26 @@ class EnergyProfileAnalyzer:
         elif self.args.test:
             # Test function remains unchanged for now, might need adjustment
             # if lf functions change significantly
-            self.df, self.dfz = init_dataframes('./data/synthload2024.xlsx')
+            self.df, self.dfz = init_dataframes('./data/synthload2025.xlsx')
             kat = 'H0'
             jen = 5500
-            tag = '2024-01-01'
+            tag = '2025-01-01'
             energysum = lf.compute_total_annual_energy(self.df, kat)
             print(kat, get_name_from_id(self.dfz, kat),
                   ': Normierte Jahres Energie', energysum, 'kWh')
             yeardaysum = lf.plot_yeardays(self.df, self.dfz,
-                                          kategorie=kat, year_str='2024', yearly_sum=jen, output='plot') # Keep plot for test, uses year_str directly
+                                          # Keep plot for test, uses year_str directly
+                                          kategorie=kat, year_str='2025', yearly_sum=jen, output='plot')
             print('Jahres Energie', yeardaysum, 'kWh')
-            pass # End of test block
+            pass  # End of test block
 
         # Output JSON if requested and data is available
         if self.args.output == 'json' and result_data is not None:
             # Ensure pandas Series/DataFrames are converted to basic types
             def default_serializer(obj):
                 if isinstance(obj, (pd.Series, pd.DataFrame)):
-                    return obj.to_dict(orient='records') # Or other suitable format
+                    # Or other suitable format
+                    return obj.to_dict(orient='records')
                 if isinstance(obj, pd.Timestamp):
                     return obj.isoformat()
                 if isinstance(obj, np.integer):
@@ -159,9 +164,11 @@ class EnergyProfileAnalyzer:
                     return float(obj)
                 if isinstance(obj, np.ndarray):
                     return obj.tolist()
-                raise TypeError(f"Object of type {obj.__class__.__name__} is not JSON serializable")
+                raise TypeError(
+                    f"Object of type {obj.__class__.__name__} is not JSON serializable")
 
             print(json.dumps(result_data, indent=4, default=default_serializer))
+
 
 if __name__ == "__main__":
     args = EnergyProfileAnalyzer.parse_arguments()
