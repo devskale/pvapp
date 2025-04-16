@@ -74,12 +74,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // Display JSON data in hidden element for copying
       const jsonData = JSON.stringify(data, null, 2);
-      resultsArea.innerHTML = "";
+      resultsArea.textContent = jsonData;
 
       // Add copy button functionality
       document.getElementById("copy-button").addEventListener("click", () => {
         navigator.clipboard
-          .writeText(resultsArea.textContent)
+          .writeText(jsonData)
           .then(() => {
             const copyBtn = document.getElementById("copy-button");
             copyBtn.innerHTML =
@@ -141,9 +141,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 },
               },
               legend: {
-                position: "bottom",
+                position: "right",
                 labels: {
-                  padding: 20,
+                  padding: 30,
+                  font: {
+                    size: 12,
+                  },
                   generateLabels: (chart) => {
                     const maxMonth = data.monthly_values.reduce(
                       (max, m) => (m.kwh > max.kwh ? m : max),
