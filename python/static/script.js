@@ -72,8 +72,9 @@ document.addEventListener("DOMContentLoaded", () => {
         throw new Error(errorDetail);
       }
 
-      // Display JSON data
-      resultsArea.textContent = JSON.stringify(data, null, 2);
+      // Display JSON data in hidden element for copying
+      const jsonData = JSON.stringify(data, null, 2);
+      resultsArea.innerHTML = "";
 
       // Add copy button functionality
       document.getElementById("copy-button").addEventListener("click", () => {
